@@ -31,6 +31,19 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://localhost:6379"
 
+    # GitHub OAuth
+    github_client_id: str = ""
+    github_client_secret: str = ""
+    github_redirect_uri: str = "http://localhost:3000/auth/github/callback"
+
+    # Email (SendGrid)
+    sendgrid_api_key: str = ""
+    from_email: str = "noreply@forma.app"
+
+    # File Storage
+    upload_dir: str = "./uploads"
+    max_upload_size: int = 10 * 1024 * 1024  # 10MB
+
     # Usage Limits
     starter_ops_limit: int = 100
     pro_ops_limit: int = 500

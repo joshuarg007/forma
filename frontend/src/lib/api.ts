@@ -68,11 +68,122 @@ class APIClient {
     return this.fetch<T>(endpoint)
   }
 
-  async post<T = any>(endpoint: string, data?: any): Promise<T> {
+  async post<T = any>(endpoint: string, data?: any, method: string = 'POST'): Promise<T> {
     return this.fetch<T>(endpoint, {
-      method: 'POST',
+      method,
       body: data ? JSON.stringify(data) : undefined,
     })
+  }
+
+  async put<T = any>(endpoint: string, data?: any): Promise<T> {
+    return this.fetch<T>(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    })
+  }
+
+  async delete<T = any>(endpoint: string): Promise<T> {
+    return this.fetch<T>(endpoint, {
+      method: 'DELETE',
+    })
+  }
+
+  // GitHub
+  async getGitHubStatus() {
+    return this.fetch<{ connected: boolean; github_username: string | null }>('/api/github/status')
+  }
+
+  async startGitHubOAuth() {
+    return this.fetch<{ oauth_url: string; state: string }>('/api/github/oauth/authorize')
+  }
+
+  async disconnectGitHub() {
+    return this.fetch<{ success: boolean }>('/api/github/oauth/disconnect', { method: 'DELETE' })
+  }
+
+  async getGitHubRepos() {
+    return this.fetch<{ repos: any[] }>('/api/github/repos')
+  }
+
+  // Team
+  async getTeamMembers(projectId: string) {
+    return this.fetch<any[]>(`/api/projects/${projectId}/team/members`)
+  }
+
+  async getTeamInvites(projectId: string) {
+    return this.fetch<any[]>(`/api/projects/${projectId}/team/invites`)
+  }
+
+  async inviteTeamMember(projectId: string, email: string, role: string, message?: string) {
+    return this.fetch<any>(`/api/projects/${projectId}/team/invite`, {
+      method: 'POST',
+      body: JSON.stringify({ email, role, message }),
+    })
+  }
+
+  async updateMemberRole(projectId: string, memberId: string, role: string) {
+    return this.fetch<any>(`/api/projects/${projectId}/team/members/${memberId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ role }),
+    })
+  }
+
+  async removeMember(projectId: string, memberId: string) {
+    return this.fetch<any>(`/api/projects/${projectId}/team/members/${memberId}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async cancelInvite(projectId: string, inviteId: string) {
+    return this.fetch<any>(`/api/projects/${projectId}/team/invites/${inviteId}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Uploads
+  async uploadImage(file: File, category: string = 'images') {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await fetch(`${API_URL}/api/uploads/image?category=${category}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      throw new Error('Upload failed')
+    }
+
+    return response.json()
+  }
+
+  async uploadAvatar(file: File) {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const response = await fetch(`${API_URL}/api/uploads/avatar`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${this.accessToken}`,
+      },
+      body: formData,
+    })
+
+    if (!response.ok) {
+      throw new Error('Upload failed')
+    }
+
+    return response.json()
+  }
+
+  // WebSocket
+  getWebSocketUrl(projectId: string): string {
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const host = API_URL.replace(/^https?:\/\//, '')
+    return `${wsProtocol}//${host}/ws/project/${projectId}?token=${this.accessToken}`
   }
 
   // Auth

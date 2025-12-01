@@ -249,6 +249,17 @@ async def invite_member(
     db.commit()
     db.refresh(invite)
 
+    # Send invitation email
+    from app.services.email import email_service
+    await email_service.send_invite_email(
+        to_email=invite_data.email,
+        inviter_name=current_user.name or current_user.email,
+        project_name=project.name,
+        invite_token=invite.invite_token,
+        role=invite.role.value,
+        message=invite_data.message
+    )
+
     return InviteOut(
         id=str(invite.id),
         email=invite.email,

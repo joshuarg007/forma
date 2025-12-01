@@ -58,6 +58,15 @@ def verify_token(token: str, token_type: str = "access") -> Optional[dict]:
         return None
 
 
+def decode_token(token: str) -> dict:
+    """Decode JWT token without type checking (for WebSocket auth)."""
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        return payload
+    except JWTError as e:
+        raise ValueError(f"Invalid token: {e}")
+
+
 async def get_current_user(
     token: Optional[str] = Depends(oauth2_scheme),
     db: Session = Depends(get_db)

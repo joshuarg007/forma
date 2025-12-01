@@ -58,6 +58,8 @@ class User(Base):
     avatar_url = Column(String(500))
     website_url = Column(String(500))
     github_username = Column(String(100))
+    github_access_token = Column(Text)  # Encrypted GitHub OAuth token
+    github_id = Column(String(100))  # GitHub user ID
     stripe_connect_id = Column(String(255))  # For payouts
 
     plan = Column(Enum(PlanType), default=PlanType.STARTER)

@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.db.database import engine, Base
-from app.api import auth, projects, components, ai, billing, marketplace, github, templates, teams
+from app.api import auth, projects, components, ai, billing, marketplace, github, templates, teams, uploads, websocket
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -35,6 +35,8 @@ app.include_router(github.router)
 app.include_router(templates.router)
 app.include_router(teams.router)
 app.include_router(teams.accept_router)
+app.include_router(uploads.router)
+app.include_router(websocket.router)
 
 
 @app.get("/")
