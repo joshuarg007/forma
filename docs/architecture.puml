@@ -1,0 +1,871 @@
+@startuml FORMA_Architecture
+
+!define PRIMARY #6366F1
+!define SECONDARY #8B5CF6
+!define SUCCESS #10B981
+!define WARNING #F59E0B
+!define DANGER #EF4444
+!define NEUTRAL #6B7280
+
+title FORMA - AI-Powered React Builder\nComplete System Architecture
+
+' ============================================
+' SYSTEM CONTEXT DIAGRAM
+' ============================================
+
+package "External Services" {
+    cloud "Anthropic API" as claude #SECONDARY {
+        [Claude Sonnet 4]
+    }
+    cloud "Stripe" as stripe #PRIMARY {
+        [Payments API]
+        [Webhooks]
+    }
+    cloud "AWS S3" as s3 #WARNING {
+        [Project Storage]
+        [Asset CDN]
+    }
+    cloud "Vercel/Railway" as hosting #NEUTRAL {
+        [Edge Deployment]
+    }
+}
+
+' ============================================
+' FRONTEND ARCHITECTURE
+' ============================================
+
+package "Frontend (Next.js 14)" as frontend #LightBlue {
+
+    package "App Router" {
+        [Landing Page] as landing
+        [Auth Pages] as auth
+        [Dashboard] as dashboard
+        [Builder] as builder
+        [Settings] as settings
+    }
+
+    package "Builder Components" {
+        [Intent Input] as intentInput
+        [Visual Canvas] as canvas
+        [Component Tree] as tree
+        [Code Preview] as codePreview
+        [Live Preview] as livePreview
+        [Property Panel] as propPanel
+    }
+
+    package "State Management" {
+        [Zustand Store] as store
+        [Project State] as projectState
+        [UI State] as uiState
+        [AI State] as aiState
+    }
+
+    package "UI Components" {
+        [Monaco Editor] as monaco
+        [React Flow] as reactFlow
+        [Framer Motion] as framer
+        [Radix UI] as radix
+    }
+}
+
+' ============================================
+' BACKEND ARCHITECTURE
+' ============================================
+
+package "Backend (FastAPI)" as backend #LightGreen {
+
+    package "API Layer" {
+        [Auth Routes] as authRoutes
+        [Project Routes] as projectRoutes
+        [AI Routes] as aiRoutes
+        [Billing Routes] as billingRoutes
+        [Export Routes] as exportRoutes
+    }
+
+    package "Services" {
+        [FormaAI Engine] as formaAI
+        [Code Generator] as codeGen
+        [Usage Tracker] as usageTracker
+        [Export Service] as exportService
+        [Billing Service] as billingService
+    }
+
+    package "Data Layer" {
+        [User Repository] as userRepo
+        [Project Repository] as projectRepo
+        [Component Repository] as componentRepo
+        [Usage Repository] as usageRepo
+    }
+
+    package "Infrastructure" {
+        [Redis Cache] as redis
+        [Celery Workers] as celery
+        [Rate Limiter] as rateLimiter
+    }
+}
+
+' ============================================
+' DATABASE SCHEMA
+' ============================================
+
+package "PostgreSQL" as db #LightYellow {
+
+    entity "users" as usersTable {
+        * id : UUID <<PK>>
+        --
+        email : VARCHAR
+        password_hash : VARCHAR
+        name : VARCHAR
+        plan : ENUM
+        stripe_customer_id : VARCHAR
+        ai_preferences : JSONB
+        created_at : TIMESTAMP
+    }
+
+    entity "projects" as projectsTable {
+        * id : UUID <<PK>>
+        --
+        * user_id : UUID <<FK>>
+        name : VARCHAR
+        description : TEXT
+        design_system : JSONB
+        settings : JSONB
+        is_public : BOOLEAN
+        created_at : TIMESTAMP
+        updated_at : TIMESTAMP
+    }
+
+    entity "components" as componentsTable {
+        * id : UUID <<PK>>
+        --
+        * project_id : UUID <<FK>>
+        name : VARCHAR
+        intent : TEXT
+        code : TEXT
+        props_schema : JSONB
+        parent_id : UUID
+        position : INTEGER
+        created_at : TIMESTAMP
+    }
+
+    entity "intentions" as intentionsTable {
+        * id : UUID <<PK>>
+        --
+        * project_id : UUID <<FK>>
+        * component_id : UUID <<FK>>
+        intent_text : TEXT
+        version : INTEGER
+        snapshot : JSONB
+        created_at : TIMESTAMP
+    }
+
+    entity "ai_usage" as usageTable {
+        * id : UUID <<PK>>
+        --
+        * user_id : UUID <<FK>>
+        operation_type : VARCHAR
+        tokens_input : INTEGER
+        tokens_output : INTEGER
+        cost_usd : DECIMAL
+        created_at : TIMESTAMP
+    }
+
+    entity "subscriptions" as subscriptionsTable {
+        * id : UUID <<PK>>
+        --
+        * user_id : UUID <<FK>>
+        stripe_subscription_id : VARCHAR
+        plan : ENUM
+        status : VARCHAR
+        current_period_start : TIMESTAMP
+        current_period_end : TIMESTAMP
+    }
+}
+
+' Relationships
+usersTable ||--o{ projectsTable : owns
+usersTable ||--o{ usageTable : tracks
+usersTable ||--|| subscriptionsTable : has
+projectsTable ||--o{ componentsTable : contains
+projectsTable ||--o{ intentionsTable : versions
+componentsTable ||--o{ intentionsTable : history
+
+' ============================================
+' CONNECTIONS
+' ============================================
+
+' Frontend to Backend
+frontend --> authRoutes : REST API
+frontend --> projectRoutes : REST API
+frontend --> aiRoutes : REST API
+frontend --> billingRoutes : REST API
+
+' Backend to Services
+aiRoutes --> formaAI
+aiRoutes --> usageTracker
+projectRoutes --> projectRepo
+projectRoutes --> exportService
+billingRoutes --> billingService
+
+' Services to External
+formaAI --> claude : API calls
+billingService --> stripe : Payments
+exportService --> s3 : Storage
+usageTracker --> redis : Cache
+
+' Services to Database
+userRepo --> usersTable
+projectRepo --> projectsTable
+componentRepo --> componentsTable
+usageRepo --> usageTable
+
+@enduml
+
+
+' ============================================
+' SEQUENCE DIAGRAM - Component Generation
+' ============================================
+
+@startuml FORMA_Generate_Component
+
+title FORMA - Generate Component Flow
+
+actor User
+participant "Builder UI" as UI
+participant "Next.js API" as NextAPI
+participant "FastAPI" as API
+participant "FormaAI" as AI
+participant "Usage Tracker" as Usage
+database "PostgreSQL" as DB
+participant "Anthropic" as Claude
+
+User -> UI: Enter intent\n"Create a pricing card with 3 tiers"
+activate UI
+
+UI -> NextAPI: POST /api/ai/generate
+activate NextAPI
+
+NextAPI -> API: POST /ai/generate\n{intent, projectContext}
+activate API
+
+API -> Usage: Check usage limit
+activate Usage
+Usage -> DB: SELECT usage this month
+DB --> Usage: Usage data
+Usage --> API: {allowed: true, remaining: 450}
+deactivate Usage
+
+API -> AI: generate_component(intent, context)
+activate AI
+
+AI -> AI: Build prompt with:\n- System prompt\n- Design system\n- Existing components\n- User intent
+
+AI -> Claude: POST /messages\n{model, system, messages}
+activate Claude
+
+Claude --> AI: Generated code + explanation
+deactivate Claude
+
+AI -> AI: Parse response\n- Extract code\n- Extract props\n- Validate syntax
+
+AI --> API: ComponentResult
+deactivate AI
+
+API -> Usage: Record usage
+activate Usage
+Usage -> DB: INSERT ai_usage
+deactivate Usage
+
+API -> DB: INSERT component
+DB --> API: Saved component
+
+API --> NextAPI: {component, code, explanation}
+deactivate API
+
+NextAPI --> UI: Component data
+deactivate NextAPI
+
+UI -> UI: Update canvas\nShow live preview
+UI --> User: Display new component
+
+deactivate UI
+
+@enduml
+
+
+' ============================================
+' SEQUENCE DIAGRAM - Billing Flow
+' ============================================
+
+@startuml FORMA_Billing_Flow
+
+title FORMA - Subscription & Billing Flow
+
+actor User
+participant "Settings UI" as UI
+participant "FastAPI" as API
+participant "Billing Service" as Billing
+participant "Stripe" as Stripe
+database "PostgreSQL" as DB
+
+== Upgrade Plan ==
+
+User -> UI: Click "Upgrade to Pro"
+activate UI
+
+UI -> API: POST /billing/create-checkout
+activate API
+
+API -> Billing: create_checkout_session(user, plan)
+activate Billing
+
+Billing -> Stripe: Create Checkout Session
+activate Stripe
+Stripe --> Billing: Session URL
+deactivate Stripe
+
+Billing --> API: {url: checkout_url}
+deactivate Billing
+
+API --> UI: Checkout URL
+deactivate API
+
+UI -> User: Redirect to Stripe Checkout
+deactivate UI
+
+User -> Stripe: Complete payment
+activate Stripe
+
+Stripe -> API: POST /billing/webhook\n{event: checkout.session.completed}
+activate API
+
+API -> Billing: handle_webhook(event)
+activate Billing
+
+Billing -> DB: UPDATE subscriptions\nSET plan = 'pro'
+Billing -> DB: UPDATE users\nSET plan = 'pro'
+
+Billing --> API: Success
+deactivate Billing
+
+API --> Stripe: 200 OK
+deactivate API
+
+Stripe --> User: Success page
+deactivate Stripe
+
+== Monthly Usage Check ==
+
+User -> UI: Use AI features
+activate UI
+
+UI -> API: POST /ai/generate
+activate API
+
+API -> Billing: check_usage(user_id)
+activate Billing
+
+Billing -> DB: SELECT SUM(operations)\nWHERE month = current
+DB --> Billing: {used: 480, limit: 500}
+
+alt Usage within limit
+    Billing --> API: {allowed: true}
+    API -> API: Process AI request
+else Usage exceeded
+    Billing --> API: {allowed: false, overage_rate: 0.05}
+    API -> Billing: charge_overage(user_id, amount)
+    Billing -> Stripe: Create usage record
+    API -> API: Process AI request
+end
+
+deactivate Billing
+deactivate API
+deactivate UI
+
+@enduml
+
+
+' ============================================
+' CLASS DIAGRAM - Core Models
+' ============================================
+
+@startuml FORMA_Class_Diagram
+
+title FORMA - Core Domain Models
+
+package "Models" {
+
+    class User {
+        +id: UUID
+        +email: str
+        +name: str
+        +plan: PlanType
+        +stripe_customer_id: str
+        +ai_preferences: dict
+        +created_at: datetime
+        --
+        +get_usage_this_month(): UsageStats
+        +can_use_ai(): bool
+        +upgrade_plan(plan: PlanType)
+    }
+
+    class Project {
+        +id: UUID
+        +user_id: UUID
+        +name: str
+        +description: str
+        +design_system: DesignSystem
+        +settings: ProjectSettings
+        +is_public: bool
+        --
+        +add_component(component: Component)
+        +get_component_tree(): list[Component]
+        +export_to_nextjs(): bytes
+        +export_to_vite(): bytes
+        +rollback_to_intention(version: int)
+    }
+
+    class Component {
+        +id: UUID
+        +project_id: UUID
+        +name: str
+        +intent: str
+        +code: str
+        +props_schema: dict
+        +parent_id: UUID
+        +position: int
+        --
+        +update_from_intent(new_intent: str)
+        +get_intentions(): list[Intention]
+        +validate_code(): ValidationResult
+    }
+
+    class Intention {
+        +id: UUID
+        +project_id: UUID
+        +component_id: UUID
+        +intent_text: str
+        +version: int
+        +snapshot: dict
+        +created_at: datetime
+        --
+        +restore(): Component
+    }
+
+    class DesignSystem {
+        +colors: ColorPalette
+        +typography: Typography
+        +spacing: SpacingScale
+        +borders: BorderStyles
+        +shadows: ShadowStyles
+        --
+        +to_tailwind_config(): dict
+        +to_css_variables(): str
+        +infer_from_component(code: str)
+    }
+
+    class AIUsage {
+        +id: UUID
+        +user_id: UUID
+        +operation_type: OperationType
+        +tokens_input: int
+        +tokens_output: int
+        +cost_usd: Decimal
+        +created_at: datetime
+    }
+
+    enum PlanType {
+        STARTER
+        PRO
+        TEAM
+        ENTERPRISE
+    }
+
+    enum OperationType {
+        GENERATE
+        EDIT
+        EXPLAIN
+        REFACTOR
+        DEBUG
+    }
+}
+
+package "Services" {
+
+    class FormaAI {
+        -client: Anthropic
+        -model: str
+        -system_prompt: str
+        --
+        +generate_component(intent: str, context: ProjectContext): ComponentResult
+        +edit_component(component: Component, edit_intent: str): ComponentResult
+        +explain_code(code: str): str
+        +suggest_improvements(component: Component): list[Suggestion]
+        -build_prompt(intent: str, context: ProjectContext): str
+        -parse_response(response: Message): ComponentResult
+    }
+
+    class UsageTracker {
+        -redis: Redis
+        --
+        +check_limit(user_id: UUID): UsageStatus
+        +record_usage(user_id: UUID, tokens: int, op_type: OperationType)
+        +get_monthly_stats(user_id: UUID): UsageStats
+        +calculate_overage(user_id: UUID): Decimal
+    }
+
+    class ExportService {
+        --
+        +export_nextjs(project: Project): bytes
+        +export_vite(project: Project): bytes
+        +export_component(component: Component): str
+        -generate_package_json(project: Project): dict
+        -generate_tailwind_config(design_system: DesignSystem): str
+    }
+
+    class BillingService {
+        -stripe: Stripe
+        --
+        +create_checkout(user: User, plan: PlanType): str
+        +create_portal_session(user: User): str
+        +handle_webhook(event: dict)
+        +charge_overage(user: User, amount: Decimal)
+        +get_subscription(user: User): Subscription
+    }
+}
+
+' Relationships
+User "1" -- "*" Project : owns
+User "1" -- "*" AIUsage : tracks
+User "1" -- "1" DesignSystem : preferences
+Project "1" -- "*" Component : contains
+Project "1" -- "1" DesignSystem : uses
+Component "1" -- "*" Intention : history
+Component "1" -- "*" Component : children
+
+FormaAI ..> Component : creates
+FormaAI ..> Intention : records
+UsageTracker ..> AIUsage : records
+ExportService ..> Project : exports
+BillingService ..> User : bills
+
+@enduml
+
+
+' ============================================
+' STATE DIAGRAM - Project Lifecycle
+' ============================================
+
+@startuml FORMA_Project_States
+
+title FORMA - Project State Machine
+
+[*] --> Created : User creates project
+
+Created --> Designing : Add first component
+Created --> [*] : Delete project
+
+Designing --> Designing : Add/edit components
+Designing --> Designing : AI generate
+Designing --> Designing : Update design system
+
+Designing --> Previewing : Open preview
+Previewing --> Designing : Close preview
+Previewing --> Previewing : Live reload
+
+Designing --> Exporting : Click export
+Exporting --> Exported : Download complete
+Exported --> Designing : Continue editing
+
+Designing --> Published : Publish project
+Published --> Designing : Unpublish
+Published --> Forked : Another user forks
+
+Designing --> [*] : Delete project
+
+state Designing {
+    [*] --> Idle
+    Idle --> AIProcessing : Submit intent
+    AIProcessing --> Reviewing : AI responds
+    Reviewing --> Idle : Accept/Reject
+    Reviewing --> AIProcessing : Refine intent
+}
+
+@enduml
+
+
+' ============================================
+' COMPONENT DIAGRAM - Frontend
+' ============================================
+
+@startuml FORMA_Frontend_Components
+
+title FORMA - Frontend Component Architecture
+
+package "Pages" {
+    [LandingPage]
+    [AuthPage]
+    [DashboardPage]
+    [BuilderPage]
+    [SettingsPage]
+}
+
+package "Builder" {
+    package "Left Panel" {
+        [ComponentTree]
+        [AssetLibrary]
+        [DesignTokens]
+    }
+
+    package "Center" {
+        [IntentBar]
+        [VisualCanvas]
+        [TabSwitcher]
+    }
+
+    package "Right Panel" {
+        [PropertiesPanel]
+        [CodeEditor]
+        [AIChat]
+    }
+
+    package "Bottom" {
+        [TimelineBar]
+        [ConsoleOutput]
+    }
+}
+
+package "Shared" {
+    [Header]
+    [Sidebar]
+    [Modal]
+    [Toast]
+    [Button]
+    [Input]
+    [Dropdown]
+}
+
+package "State" {
+    [projectStore]
+    [uiStore]
+    [aiStore]
+    [userStore]
+}
+
+' Connections
+BuilderPage --> IntentBar
+BuilderPage --> VisualCanvas
+BuilderPage --> ComponentTree
+BuilderPage --> PropertiesPanel
+BuilderPage --> CodeEditor
+BuilderPage --> AIChat
+
+IntentBar --> aiStore : dispatch
+VisualCanvas --> projectStore : subscribe
+ComponentTree --> projectStore : subscribe
+PropertiesPanel --> projectStore : update
+CodeEditor --> projectStore : update
+AIChat --> aiStore : dispatch
+
+@enduml
+
+
+' ============================================
+' DEPLOYMENT DIAGRAM
+' ============================================
+
+@startuml FORMA_Deployment
+
+title FORMA - Deployment Architecture
+
+node "Vercel Edge" as vercel {
+    [Next.js Frontend]
+    [API Routes (BFF)]
+}
+
+node "Railway/Render" as railway {
+    [FastAPI Backend]
+    [Celery Workers]
+}
+
+node "AWS" as aws {
+    database "RDS PostgreSQL" as rds
+    storage "S3 Bucket" as s3
+    [CloudFront CDN] as cdn
+}
+
+node "Redis Cloud" as redisCloud {
+    database "Redis" as redis
+}
+
+cloud "External APIs" as external {
+    [Anthropic API]
+    [Stripe API]
+    [SendGrid]
+}
+
+[Next.js Frontend] --> [API Routes (BFF)]
+[API Routes (BFF)] --> [FastAPI Backend]
+[FastAPI Backend] --> rds
+[FastAPI Backend] --> redis
+[FastAPI Backend] --> s3
+[FastAPI Backend] --> [Anthropic API]
+[FastAPI Backend] --> [Stripe API]
+[FastAPI Backend] --> [SendGrid]
+[Celery Workers] --> redis
+[Celery Workers] --> rds
+s3 --> cdn
+cdn --> [Next.js Frontend]
+
+@enduml
+
+
+' ============================================
+' USE CASE DIAGRAM
+' ============================================
+
+@startuml FORMA_Use_Cases
+
+title FORMA - Use Cases
+
+left to right direction
+
+actor "Free User" as free
+actor "Pro User" as pro
+actor "Team Admin" as admin
+
+rectangle FORMA {
+    usecase "Create Project" as UC1
+    usecase "Generate Component" as UC2
+    usecase "Edit with AI" as UC3
+    usecase "Preview Project" as UC4
+    usecase "Export Code" as UC5
+    usecase "Manage Design System" as UC6
+    usecase "View Usage Stats" as UC7
+    usecase "Upgrade Plan" as UC8
+    usecase "Invite Team Members" as UC9
+    usecase "Manage Billing" as UC10
+    usecase "Fork Public Project" as UC11
+    usecase "Publish Project" as UC12
+    usecase "Access API" as UC13
+}
+
+free --> UC1
+free --> UC2 : (100 ops/mo)
+free --> UC4
+free --> UC8
+free --> UC11
+
+pro --> UC1
+pro --> UC2 : (500 ops/mo)
+pro --> UC3
+pro --> UC4
+pro --> UC5
+pro --> UC6
+pro --> UC7
+pro --> UC12
+
+admin --> UC1
+admin --> UC2 : (2000 ops/mo)
+admin --> UC3
+admin --> UC4
+admin --> UC5
+admin --> UC6
+admin --> UC7
+admin --> UC9
+admin --> UC10
+admin --> UC12
+admin --> UC13
+
+@enduml
+
+
+' ============================================
+' API ROUTES DIAGRAM
+' ============================================
+
+@startuml FORMA_API_Routes
+
+title FORMA - API Endpoints
+
+package "Authentication" #LightBlue {
+    class "/api/auth" {
+        POST /register
+        POST /login
+        POST /logout
+        POST /refresh
+        GET /me
+        POST /forgot-password
+        POST /reset-password
+    }
+}
+
+package "Projects" #LightGreen {
+    class "/api/projects" {
+        GET /
+        POST /
+        GET /{id}
+        PUT /{id}
+        DELETE /{id}
+        POST /{id}/duplicate
+        GET /{id}/export/nextjs
+        GET /{id}/export/vite
+        POST /{id}/publish
+        DELETE /{id}/publish
+    }
+}
+
+package "Components" #LightYellow {
+    class "/api/projects/{id}/components" {
+        GET /
+        POST /
+        GET /{component_id}
+        PUT /{component_id}
+        DELETE /{component_id}
+        POST /{component_id}/duplicate
+        GET /{component_id}/intentions
+        POST /{component_id}/rollback
+    }
+}
+
+package "AI Operations" #LightPink {
+    class "/api/ai" {
+        POST /generate
+        POST /edit
+        POST /explain
+        POST /refactor
+        POST /debug
+        POST /suggest
+        GET /usage
+    }
+}
+
+package "Billing" #LightCoral {
+    class "/api/billing" {
+        GET /subscription
+        POST /checkout
+        POST /portal
+        POST /webhook
+        GET /invoices
+        GET /usage
+    }
+}
+
+package "Team" #LightCyan {
+    class "/api/team" {
+        GET /members
+        POST /invite
+        DELETE /members/{id}
+        PUT /members/{id}/role
+    }
+}
+
+package "Public" #LightGray {
+    class "/api/public" {
+        GET /projects
+        GET /projects/{id}
+        POST /projects/{id}/fork
+    }
+}
+
+@enduml
