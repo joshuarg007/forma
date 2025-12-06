@@ -42,7 +42,8 @@ interface Project {
 export default function ListingDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { user, isAuthenticated } = useAuthStore()
+  const { user } = useAuthStore()
+  const isAuthenticated = !!user
 
   const [listing, setListing] = useState<Listing | null>(null)
   const [loading, setLoading] = useState(true)

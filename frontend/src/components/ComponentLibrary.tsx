@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Tooltip from './Tooltip'
 import {
   Search, ChevronDown, Plus, Star, Clock, Sparkles, GripVertical,
   Layout, Navigation, FormInput, Table2, AlertCircle, Type, Box,
@@ -45,7 +46,7 @@ interface Category {
 
 interface ComponentLibraryProps {
   onSelectComponent: (component: ComponentItem) => void
-  onDragStart: (e: React.DragEvent, component: ComponentItem) => void
+  onDragStart: (e: React.DragEvent, component: { id: string; name: string }) => void
 }
 
 export default function ComponentLibrary({ onSelectComponent, onDragStart }: ComponentLibraryProps) {
@@ -93,7 +94,9 @@ export default function ComponentLibrary({ onSelectComponent, onDragStart }: Com
       items: [
         { id: 'navbar', name: 'Navbar', icon: <Menu className="w-4 h-4" />, description: 'Responsive navigation bar', popular: true },
         { id: 'navbar-transparent', name: 'Transparent Navbar', icon: <Menu className="w-4 h-4" />, description: 'For hero overlays', new: true },
-        { id: 'sidebar', name: 'Sidebar', icon: <SidebarIcon className="w-4 h-4" />, description: 'Collapsible sidebar menu' },
+        { id: 'sidebar', name: 'Sidebar Nav', icon: <SidebarIcon className="w-4 h-4" />, description: 'Full sidebar with menu', popular: true },
+        { id: 'sidebar-minimal', name: 'Minimal Sidebar', icon: <SidebarIcon className="w-4 h-4" />, description: 'Icon-only collapsed sidebar', new: true },
+        { id: 'dashboard-layout', name: 'Dashboard Layout', icon: <Monitor className="w-4 h-4" />, description: 'Top bar + stats grid', new: true },
         { id: 'tabs', name: 'Tabs', icon: <Bookmark className="w-4 h-4" />, description: 'Tabbed content switcher', popular: true },
         { id: 'tabs-vertical', name: 'Vertical Tabs', icon: <Bookmark className="w-4 h-4" />, description: 'Side-aligned tabs' },
         { id: 'breadcrumbs', name: 'Breadcrumbs', icon: <ChevronRight className="w-4 h-4" />, description: 'Navigation trail' },
@@ -467,67 +470,111 @@ export default function ComponentLibrary({ onSelectComponent, onDragStart }: Com
                   >
                     <div className="pl-2 pr-1 py-1 space-y-1">
                       {category.items.map((item) => (
-                        <div
+                        <Tooltip
                           key={item.id}
-                          draggable
-                          onDragStart={(e) => {
-                            console.log('Drag start event fired for:', item.name)
-                            // Only pass serializable data (not the React icon component)
-                            onDragStart(e, { id: item.id, name: item.name })
-                          }}
-                          onClick={() => {
-                            console.log('Row clicked for:', item.name)
-                            handleItemClick(item)
-                          }}
-                          className="group flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-forma-500/20 border border-white/5 hover:border-forma-500/30 cursor-grab active:cursor-grabbing transition"
-                        >
-                          <GripVertical className="w-3 h-3 text-white/20 group-hover:text-white/40 flex-shrink-0" />
-                          <span className="text-white/60 group-hover:text-forma-400 transition">
-                            {item.icon}
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-sm text-white/80 group-hover:text-white transition truncate">
-                                {item.name}
-                              </span>
-                              {item.popular && (
-                                <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                          delay={500}
+                          position="right"
+                          content={
+                            <div className="bg-forma-900 border border-white/20 rounded-xl shadow-2xl p-4 w-64">
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className="w-10 h-10 rounded-lg bg-forma-500/20 flex items-center justify-center text-forma-400">
+                                  {item.icon}
+                                </div>
+                                <div>
+                                  <h4 className="text-white font-medium">{item.name}</h4>
+                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                    {item.popular && (
+                                      <span className="flex items-center gap-1 text-[10px] text-yellow-400">
+                                        <Star className="w-3 h-3 fill-yellow-400" />
+                                        Popular
+                                      </span>
+                                    )}
+                                    {item.new && (
+                                      <span className="text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded">
+                                        NEW
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              {item.description && (
+                                <p className="text-sm text-white/70 mb-3">{item.description}</p>
                               )}
-                              {item.new && (
-                                <span className="px-1 py-0.5 text-[10px] bg-green-500/20 text-green-400 rounded">
-                                  NEW
+                              <div className="flex items-center gap-2 text-xs text-white/40 pt-2 border-t border-white/10">
+                                <span className="flex items-center gap-1">
+                                  <MousePointer className="w-3 h-3" />
+                                  Click to add
                                 </span>
-                              )}
+                                <span className="text-white/20">|</span>
+                                <span className="flex items-center gap-1">
+                                  <GripVertical className="w-3 h-3" />
+                                  Drag to canvas
+                                </span>
+                              </div>
                             </div>
-                            {item.description && (
-                              <p className="text-xs text-white/40 truncate">{item.description}</p>
-                            )}
-                          </div>
-                          {/* Add button - always visible */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              console.log('Add button clicked for:', item.name)
+                          }
+                        >
+                          <div
+                            draggable
+                            onDragStart={(e) => {
+                              console.log('Drag start event fired for:', item.name)
+                              // Only pass serializable data (not the React icon component)
+                              onDragStart(e, { id: item.id, name: item.name })
+                            }}
+                            onClick={() => {
+                              console.log('Row clicked for:', item.name)
                               handleItemClick(item)
                             }}
-                            className="p-1.5 rounded bg-forma-500 hover:bg-forma-600 text-white transition"
-                            title="Add to canvas"
+                            className="group flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-forma-500/20 border border-white/5 hover:border-forma-500/30 cursor-grab active:cursor-grabbing transition"
                           >
-                            <Plus className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={(e) => toggleFavorite(item.id, e)}
-                            className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-white/10 transition"
-                          >
-                            <Star
-                              className={`w-3 h-3 ${
-                                favorites.includes(item.id)
-                                  ? 'text-yellow-400 fill-yellow-400'
-                                  : 'text-white/40'
-                              }`}
-                            />
-                          </button>
-                        </div>
+                            <GripVertical className="w-3 h-3 text-white/20 group-hover:text-white/40 flex-shrink-0" />
+                            <span className="text-white/60 group-hover:text-forma-400 transition">
+                              {item.icon}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm text-white/80 group-hover:text-white transition truncate">
+                                  {item.name}
+                                </span>
+                                {item.popular && (
+                                  <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                                )}
+                                {item.new && (
+                                  <span className="px-1 py-0.5 text-[10px] bg-green-500/20 text-green-400 rounded">
+                                    NEW
+                                  </span>
+                                )}
+                              </div>
+                              {item.description && (
+                                <p className="text-xs text-white/40 truncate">{item.description}</p>
+                              )}
+                            </div>
+                            {/* Add button - always visible */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                console.log('Add button clicked for:', item.name)
+                                handleItemClick(item)
+                              }}
+                              className="p-1.5 rounded bg-forma-500 hover:bg-forma-600 text-white transition"
+                              title="Add to canvas"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={(e) => toggleFavorite(item.id, e)}
+                              className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-white/10 transition"
+                            >
+                              <Star
+                                className={`w-3 h-3 ${
+                                  favorites.includes(item.id)
+                                    ? 'text-yellow-400 fill-yellow-400'
+                                    : 'text-white/40'
+                                }`}
+                              />
+                            </button>
+                          </div>
+                        </Tooltip>
                       ))}
                     </div>
                   </motion.div>

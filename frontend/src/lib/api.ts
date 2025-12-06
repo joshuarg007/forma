@@ -269,6 +269,67 @@ class APIClient {
     })
   }
 
+  // Pages
+  async getPages(projectId: string) {
+    return this.fetch<{ pages: any[]; total: number }>(`/api/projects/${projectId}/pages`)
+  }
+
+  async createPage(projectId: string, data: {
+    name: string
+    slug: string
+    description?: string
+    page_type?: string
+    layout?: string
+    is_homepage?: boolean
+    is_dynamic?: boolean
+    dynamic_param?: string
+    meta_title?: string
+    meta_description?: string
+    show_in_nav?: boolean
+    nav_label?: string
+    nav_icon?: string
+    canvas_components?: any[]
+  }) {
+    return this.fetch<any>(`/api/projects/${projectId}/pages`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async getPage(projectId: string, pageId: string) {
+    return this.fetch<any>(`/api/projects/${projectId}/pages/${pageId}`)
+  }
+
+  async getPageBySlug(projectId: string, slug: string) {
+    return this.fetch<any>(`/api/projects/${projectId}/pages/by-slug/${slug}`)
+  }
+
+  async updatePage(projectId: string, pageId: string, data: any) {
+    return this.fetch<any>(`/api/projects/${projectId}/pages/${pageId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deletePage(projectId: string, pageId: string) {
+    return this.fetch<void>(`/api/projects/${projectId}/pages/${pageId}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async duplicatePage(projectId: string, pageId: string) {
+    return this.fetch<any>(`/api/projects/${projectId}/pages/${pageId}/duplicate`, {
+      method: 'POST',
+    })
+  }
+
+  async reorderPages(projectId: string, pages: { id: string; position: number }[]) {
+    return this.fetch<{ ok: boolean }>(`/api/projects/${projectId}/pages/reorder`, {
+      method: 'POST',
+      body: JSON.stringify({ pages }),
+    })
+  }
+
   // AI
   async generateComponent(intent: string, projectId: string, designSystem?: any) {
     return this.fetch<{

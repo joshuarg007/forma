@@ -16,7 +16,7 @@ class TestProjects:
             },
             headers=auth_headers,
         )
-        assert response.status_code == 200
+        assert response.status_code == 201
         data = response.json()
         assert data["name"] == "My New Project"
         assert data["description"] == "A great project"
@@ -91,7 +91,7 @@ class TestProjects:
             f"/api/projects/{test_project.id}",
             headers=auth_headers,
         )
-        assert response.status_code == 200
+        assert response.status_code == 204
 
         # Verify it's deleted
         response = client.get(
@@ -115,7 +115,7 @@ class TestComponents:
             },
             headers=auth_headers,
         )
-        assert response.status_code == 200
+        assert response.status_code == 201
         data = response.json()
         assert data["name"] == "HeroSection"
         assert "id" in data
@@ -184,4 +184,4 @@ class TestComponents:
             f"/api/projects/{test_project.id}/components/{component_id}",
             headers=auth_headers,
         )
-        assert response.status_code == 200
+        assert response.status_code == 204

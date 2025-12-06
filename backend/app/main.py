@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.db.database import engine, Base
-from app.api import auth, projects, components, ai, billing, marketplace, github, templates, teams, uploads, websocket
+from app.api import auth, projects, components, ai, billing, marketplace, github, templates, teams, uploads, websocket, pages
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -27,6 +27,7 @@ app.add_middleware(
 # Routes
 app.include_router(auth.router)
 app.include_router(projects.router)
+app.include_router(pages.router)
 app.include_router(components.router)
 app.include_router(ai.router)
 app.include_router(billing.router)

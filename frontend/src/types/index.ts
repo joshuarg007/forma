@@ -1,4 +1,6 @@
 // FORMA Types
+import type { CanvasComponent } from './components'
+export type { CanvasComponent }
 
 export interface User {
   id: string
@@ -40,6 +42,70 @@ export interface Component {
   position: number
   created_at: string
   updated_at: string
+}
+
+// Page types for multi-page projects
+export type PageType = 'page' | 'layout' | 'component'
+
+export interface Page {
+  id: string
+  project_id: string
+  name: string
+  slug: string
+  description: string | null
+  page_type: PageType
+  canvas_components: CanvasComponent[]
+  layout: string
+  parent_layout_id: string | null
+  is_homepage: boolean
+  is_dynamic: boolean
+  dynamic_param: string | null
+  meta_title: string | null
+  meta_description: string | null
+  og_image: string | null
+  position: number
+  show_in_nav: boolean
+  nav_label: string | null
+  nav_icon: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PageCreate {
+  name: string
+  slug: string
+  description?: string
+  page_type?: PageType
+  layout?: string
+  is_homepage?: boolean
+  is_dynamic?: boolean
+  dynamic_param?: string
+  meta_title?: string
+  meta_description?: string
+  show_in_nav?: boolean
+  nav_label?: string
+  nav_icon?: string
+  canvas_components?: CanvasComponent[]
+}
+
+export interface PageUpdate {
+  name?: string
+  slug?: string
+  description?: string
+  page_type?: PageType
+  layout?: string
+  parent_layout_id?: string
+  is_homepage?: boolean
+  is_dynamic?: boolean
+  dynamic_param?: string
+  meta_title?: string
+  meta_description?: string
+  og_image?: string
+  show_in_nav?: boolean
+  nav_label?: string
+  nav_icon?: string
+  canvas_components?: CanvasComponent[]
+  position?: number
 }
 
 export interface Intention {

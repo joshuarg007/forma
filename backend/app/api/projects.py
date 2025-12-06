@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 import io
 
 from app.db.database import get_db
-from app.db.models import User, Project, Component
+from app.db.models import User, Project, Component, Page
 from app.core.security import get_current_user_required
 from app.schemas.project import (
     ProjectCreate, ProjectUpdate, ProjectResponse, ProjectListResponse
@@ -37,7 +37,7 @@ async def create_project(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user_required)
 ):
-    """Create a new project."""
+    """Create a new project with a default Home page."""
     project = Project(
         user_id=user.id,
         name=data.name,
@@ -47,6 +47,20 @@ async def create_project(
     db.add(project)
     db.commit()
     db.refresh(project)
+
+    # Create default Home page
+    home_page = Page(
+        project_id=project.id,
+        name="Home",
+        slug="home",
+        description="Homepage",
+        is_homepage=True,
+        position=0,
+        canvas_components=[]
+    )
+    db.add(home_page)
+    db.commit()
+
     return ProjectResponse.model_validate(project)
 
 
@@ -132,7 +146,7 @@ async def duplicate_project(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user_required)
 ):
-    """Duplicate a project."""
+    """Duplicate a project including all pages."""
     project = db.query(Project).filter(
         Project.id == project_id,
         Project.user_id == user.id
@@ -154,7 +168,30 @@ async def duplicate_project(
     db.add(new_project)
     db.commit()
 
-    # Duplicate components
+    # Duplicate pages
+    pages = db.query(Page).filter(Page.project_id == project.id).order_by(Page.position).all()
+    for page in pages:
+        new_page = Page(
+            project_id=new_project.id,
+            name=page.name,
+            slug=page.slug,
+            description=page.description,
+            page_type=page.page_type,
+            canvas_components=page.canvas_components,
+            layout=page.layout,
+            is_homepage=page.is_homepage,
+            is_dynamic=page.is_dynamic,
+            dynamic_param=page.dynamic_param,
+            meta_title=page.meta_title,
+            meta_description=page.meta_description,
+            show_in_nav=page.show_in_nav,
+            nav_label=page.nav_label,
+            nav_icon=page.nav_icon,
+            position=page.position
+        )
+        db.add(new_page)
+
+    # Duplicate components (legacy support)
     components = db.query(Component).filter(Component.project_id == project.id).all()
     for comp in components:
         new_comp = Component(

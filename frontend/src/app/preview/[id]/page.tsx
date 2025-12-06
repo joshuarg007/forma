@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import {
   ChevronDown, Star, User, Users, Mail, Lock, ShoppingCart,
-  Menu, X, Check, ArrowRight, Play, Quote
+  Menu, X, Check, ArrowRight, Play, Quote, Home
 } from 'lucide-react'
 
 interface CanvasComponent {
@@ -12,6 +12,21 @@ interface CanvasComponent {
   type: string
   name: string
   props: Record<string, any>
+}
+
+interface Page {
+  id: string
+  name: string
+  slug: string
+  is_homepage: boolean
+  show_in_nav: boolean
+  nav_label: string | null
+  canvas_components: CanvasComponent[]
+}
+
+interface PreviewData {
+  pages: Page[]
+  currentPageSlug: string
 }
 
 // Full-page component renderers (more detailed than canvas previews)
@@ -350,6 +365,171 @@ const componentRenderers: Record<string, (props: any) => JSX.Element> = {
     </div>
   ),
 
+  'sidebar': () => (
+    <div className="flex min-h-screen">
+      <aside className="w-64 bg-gray-900 text-white flex flex-col">
+        <div className="p-4 border-b border-gray-800">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center font-bold text-sm">A</div>
+            <span className="font-semibold">AppName</span>
+          </div>
+        </div>
+        <nav className="flex-1 p-4 space-y-1">
+          <a href="#" className="flex items-center gap-3 px-3 py-2 rounded-lg bg-indigo-600 text-white">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+            Dashboard
+          </a>
+          <a href="#" className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            Users
+          </a>
+          <a href="#" className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+            Analytics
+          </a>
+          <a href="#" className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+            Projects
+          </a>
+          <a href="#" className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            Settings
+          </a>
+        </nav>
+        <div className="p-4 border-t border-gray-800">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gray-700 rounded-full" />
+            <div className="flex-1">
+              <div className="text-sm font-medium">John Doe</div>
+              <div className="text-xs text-gray-500">Admin</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+      <main className="flex-1 bg-gray-100 p-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
+        <p className="text-gray-600">Your main content goes here.</p>
+      </main>
+    </div>
+  ),
+
+  'sidebar-minimal': () => (
+    <div className="flex min-h-screen">
+      <aside className="w-16 bg-gray-900 text-white flex flex-col items-center py-4">
+        <div className="w-10 h-10 bg-indigo-500 rounded-lg flex items-center justify-center font-bold text-sm mb-6">A</div>
+        <nav className="flex-1 flex flex-col gap-2">
+          <a href="#" className="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+          </a>
+          <a href="#" className="w-10 h-10 rounded-lg text-gray-400 hover:bg-gray-800 flex items-center justify-center transition">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+          </a>
+          <a href="#" className="w-10 h-10 rounded-lg text-gray-400 hover:bg-gray-800 flex items-center justify-center transition">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+          </a>
+        </nav>
+        <div className="w-10 h-10 bg-gray-700 rounded-full" />
+      </aside>
+      <main className="flex-1 bg-gray-100 p-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
+        <p className="text-gray-600">Your main content goes here.</p>
+      </main>
+    </div>
+  ),
+
+  'dashboard-layout': () => (
+    <div className="min-h-screen bg-gray-100">
+      <header className="bg-white border-b border-gray-200 px-6 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            <h1 className="font-bold text-xl text-gray-900">Dashboard</h1>
+            <nav className="hidden md:flex gap-6 text-gray-500 text-sm">
+              <a href="#" className="text-indigo-600 font-medium">Overview</a>
+              <a href="#" className="hover:text-gray-900 transition">Analytics</a>
+              <a href="#" className="hover:text-gray-900 transition">Reports</a>
+              <a href="#" className="hover:text-gray-900 transition">Notifications</a>
+            </nav>
+          </div>
+          <div className="flex items-center gap-4">
+            <button className="p-2 text-gray-400 hover:text-gray-600 transition">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+            </button>
+            <div className="w-8 h-8 bg-indigo-500 rounded-full" />
+          </div>
+        </div>
+      </header>
+      <main className="max-w-7xl mx-auto p-6">
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <div className="text-sm text-gray-500 mb-1">Total Users</div>
+            <div className="text-3xl font-bold text-gray-900">12,345</div>
+            <div className="text-sm text-green-600 mt-2">↑ 12% from last month</div>
+          </div>
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <div className="text-sm text-gray-500 mb-1">Revenue</div>
+            <div className="text-3xl font-bold text-gray-900">$54,321</div>
+            <div className="text-sm text-green-600 mt-2">↑ 8% from last month</div>
+          </div>
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <div className="text-sm text-gray-500 mb-1">Active Projects</div>
+            <div className="text-3xl font-bold text-gray-900">48</div>
+            <div className="text-sm text-red-600 mt-2">↓ 3% from last month</div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-8 shadow-sm text-center text-gray-400">
+          Additional dashboard content goes here
+        </div>
+      </main>
+    </div>
+  ),
+
+  'grid-2col': () => (
+    <div className="py-12 px-6 bg-gray-50">
+      <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-8">
+        <div className="bg-white p-8 rounded-xl shadow-sm text-center text-gray-400">Column 1</div>
+        <div className="bg-white p-8 rounded-xl shadow-sm text-center text-gray-400">Column 2</div>
+      </div>
+    </div>
+  ),
+
+  'grid-3col': () => (
+    <div className="py-12 px-6 bg-gray-50">
+      <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8">
+        <div className="bg-white p-8 rounded-xl shadow-sm text-center text-gray-400">Column 1</div>
+        <div className="bg-white p-8 rounded-xl shadow-sm text-center text-gray-400">Column 2</div>
+        <div className="bg-white p-8 rounded-xl shadow-sm text-center text-gray-400">Column 3</div>
+      </div>
+    </div>
+  ),
+
+  'grid-4col': () => (
+    <div className="py-12 px-6 bg-gray-50">
+      <div className="max-w-6xl mx-auto grid md:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow-sm text-center text-gray-400">Col 1</div>
+        <div className="bg-white p-6 rounded-xl shadow-sm text-center text-gray-400">Col 2</div>
+        <div className="bg-white p-6 rounded-xl shadow-sm text-center text-gray-400">Col 3</div>
+        <div className="bg-white p-6 rounded-xl shadow-sm text-center text-gray-400">Col 4</div>
+      </div>
+    </div>
+  ),
+
+  'section': () => (
+    <section className="py-16 px-6 bg-white">
+      <div className="max-w-6xl mx-auto">
+        <h2 className="text-3xl font-bold text-gray-900 mb-4">Section Title</h2>
+        <p className="text-gray-600">Add your content here. This is a flexible section container.</p>
+      </div>
+    </section>
+  ),
+
+  'spacer': () => <div className="h-16" />,
+
+  'divider': () => (
+    <div className="max-w-6xl mx-auto px-6">
+      <hr className="border-gray-200" />
+    </div>
+  ),
+
   'default': (props: { name: string }) => (
     <div className="py-12 px-6 bg-gray-100">
       <div className="max-w-4xl mx-auto text-center p-12 bg-white rounded-xl shadow-sm">
@@ -362,27 +542,72 @@ const componentRenderers: Record<string, (props: any) => JSX.Element> = {
 
 export default function PreviewPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const projectId = params.id as string
-  const [components, setComponents] = useState<CanvasComponent[]>([])
+  const pageSlug = searchParams.get('page')
+
+  const [pages, setPages] = useState<Page[]>([])
+  const [currentPage, setCurrentPage] = useState<Page | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showNav, setShowNav] = useState(false)
 
   useEffect(() => {
-    // Get components from localStorage (set by builder page)
+    // Get preview data from localStorage (set by builder page)
     const stored = localStorage.getItem(`forma-preview-${projectId}`)
     if (stored) {
       try {
-        setComponents(JSON.parse(stored))
+        const data = JSON.parse(stored)
+
+        // Handle both old format (array) and new format (object with pages)
+        if (Array.isArray(data)) {
+          // Legacy format - single page
+          const legacyPage: Page = {
+            id: 'legacy',
+            name: 'Home',
+            slug: 'home',
+            is_homepage: true,
+            show_in_nav: true,
+            nav_label: null,
+            canvas_components: data
+          }
+          setPages([legacyPage])
+          setCurrentPage(legacyPage)
+        } else {
+          // New multi-page format
+          const previewData = data as PreviewData
+          setPages(previewData.pages)
+
+          // Find the page to display
+          const targetSlug = pageSlug || previewData.currentPageSlug || 'home'
+          const page = previewData.pages.find(p => p.slug === targetSlug)
+            || previewData.pages.find(p => p.is_homepage)
+            || previewData.pages[0]
+          setCurrentPage(page || null)
+        }
       } catch (e) {
         console.error('Failed to parse preview data:', e)
       }
     }
     setLoading(false)
-  }, [projectId])
+  }, [projectId, pageSlug])
+
+  const navigateToPage = (slug: string) => {
+    const page = pages.find(p => p.slug === slug)
+    if (page) {
+      setCurrentPage(page)
+      // Update URL without reload
+      window.history.pushState({}, '', `/preview/${projectId}?page=${slug}`)
+    }
+    setShowNav(false)
+  }
 
   const renderComponent = (component: CanvasComponent) => {
     const Renderer = componentRenderers[component.type] || componentRenderers['default']
     return <Renderer key={component.id} name={component.name} {...component.props} />
   }
+
+  // Get nav pages (pages that should show in navigation)
+  const navPages = pages.filter(p => p.show_in_nav !== false)
 
   if (loading) {
     return (
@@ -392,7 +617,7 @@ export default function PreviewPage() {
     )
   }
 
-  if (components.length === 0) {
+  if (!currentPage || currentPage.canvas_components.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -411,7 +636,30 @@ export default function PreviewPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {components.map(renderComponent)}
+      {/* Multi-page Navigation Bar (if more than 1 page) */}
+      {pages.length > 1 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <div className="bg-gray-900/90 backdrop-blur-lg rounded-full px-2 py-2 flex items-center gap-1 shadow-2xl border border-white/10">
+            {navPages.map((page) => (
+              <button
+                key={page.id}
+                onClick={() => navigateToPage(page.slug)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition ${
+                  currentPage?.id === page.id
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-gray-300 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                {page.is_homepage && <Home className="w-4 h-4" />}
+                {page.nav_label || page.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Page Content */}
+      {currentPage.canvas_components.map(renderComponent)}
     </div>
   )
 }

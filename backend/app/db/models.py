@@ -92,9 +92,60 @@ class Project(Base):
 
     # Relationships
     user = relationship("User", back_populates="projects")
+    pages = relationship("Page", back_populates="project", cascade="all, delete-orphan", order_by="Page.position")
     components = relationship("Component", back_populates="project", cascade="all, delete-orphan")
     intentions = relationship("Intention", back_populates="project", cascade="all, delete-orphan")
     members = relationship("ProjectMember", back_populates="project", cascade="all, delete-orphan")
+
+
+class PageType(str, PyEnum):
+    PAGE = "page"           # Regular page
+    LAYOUT = "layout"       # Layout wrapper (header, footer, sidebar)
+    COMPONENT = "component" # Reusable component
+
+
+class Page(Base):
+    """Individual page within a project - enables multi-page React apps."""
+    __tablename__ = "pages"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    project_id = Column(GUID(), ForeignKey("projects.id"), nullable=False)
+
+    # Page identity
+    name = Column(String(255), nullable=False)
+    slug = Column(String(255), nullable=False)  # URL path: "about", "pricing", "dashboard"
+    description = Column(Text)
+    page_type = Column(Enum(PageType), default=PageType.PAGE)
+
+    # Canvas state - the visual components on this page
+    canvas_components = Column(JSON, default=list)  # Array of CanvasComponent objects
+
+    # Layout & settings
+    layout = Column(String(50), default="default")  # "blank", "default", "sidebar", "dashboard"
+    parent_layout_id = Column(GUID(), ForeignKey("pages.id"), nullable=True)  # For nested layouts
+    is_homepage = Column(Boolean, default=False)
+    is_dynamic = Column(Boolean, default=False)  # For [id] routes
+    dynamic_param = Column(String(50))  # e.g., "id", "slug"
+
+    # SEO metadata
+    meta_title = Column(String(255))
+    meta_description = Column(Text)
+    og_image = Column(String(500))
+
+    # Ordering
+    position = Column(Integer, default=0)
+
+    # Navigation settings
+    show_in_nav = Column(Boolean, default=True)
+    nav_label = Column(String(100))  # Override name in nav
+    nav_icon = Column(String(50))  # Icon name for sidebar nav
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    project = relationship("Project", back_populates="pages")
+    parent_layout = relationship("Page", remote_side=[id], foreign_keys=[parent_layout_id])
 
 
 class Component(Base):

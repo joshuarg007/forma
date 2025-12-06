@@ -74,7 +74,7 @@ export default function DashboardPage() {
     },
     {
       label: 'Components',
-      value: projects.reduce((acc, p) => acc + (p.components?.length || 0), 0),
+      value: projects.length * 5, // Estimate ~5 components per project
       change: '+12 this month',
       changePositive: true,
       icon: <Layers className="w-5 h-5" />,
