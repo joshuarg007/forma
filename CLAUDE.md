@@ -310,6 +310,117 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 ---
 
+## Quick Reference (Read This First)
+
+### Common Commands
+```bash
+# Start servers (do this first)
+cd ~/forma/backend && source venv/bin/activate && uvicorn app.main:app --port 8000 &
+cd ~/forma/frontend && npm run dev &
+
+# Run tests
+cd ~/forma/backend && source venv/bin/activate && pytest
+cd ~/forma/frontend && npm run build  # TypeScript check
+
+# Check server health
+curl http://localhost:8000/health
+curl http://localhost:3000
+
+# Database location
+~/forma/backend/forma.db  # SQLite file
+
+# Logs
+# Backend logs appear in terminal where uvicorn runs
+# Frontend logs appear in terminal where npm run dev runs
+```
+
+### Where To Edit For Common Tasks
+
+| Task | File(s) |
+|------|---------|
+| Add new component to library | `frontend/src/components/ComponentLibrary.tsx` |
+| Add component preview renderer | `frontend/src/app/preview/[id]/page.tsx` (componentRenderers object) |
+| Add new API endpoint | `backend/app/api/` + register in `backend/app/main.py` |
+| Add database model | `backend/app/db/models.py` + create schema in `backend/app/schemas/` |
+| Modify canvas behavior | `frontend/src/components/VisualCanvas.tsx` |
+| Change AI generation | `backend/app/services/forma_ai.py` |
+| Add frontend page | `frontend/src/app/{route}/page.tsx` |
+| Modify auth flow | `backend/app/api/auth.py` + `frontend/src/stores/authStore.ts` |
+| Add export format | `backend/app/services/export.py` |
+
+### Architecture Decisions
+
+1. **Canvas State**: Stored as JSON array in `Page.canvas_components` column, not as separate component records. This simplifies undo/redo and page duplication.
+
+2. **Component Library**: Pre-built components are defined inline in `ComponentLibrary.tsx` with React icons. Preview renderers are separate in `preview/[id]/page.tsx`.
+
+3. **Auth**: JWT with access (30min) + refresh (7 days) tokens. Stored in localStorage via Zustand persist.
+
+4. **AI Components**: Generated code stored in `Component.code` field. Intent history tracked in `Intention` table for version control.
+
+5. **Multi-page**: Each Page has its own `canvas_components` JSON. Pages belong to Projects. Auto-creates "Home" page on project creation.
+
+6. **Preview**: Uses localStorage to pass canvas state from builder to preview tab. Key: `forma-preview-{projectId}`.
+
+### Gotchas & Things To Know
+
+1. **Drag-drop icons**: ComponentLibrary items have React icons that can't be JSON.stringify'd. Only pass `{ id, name }` to drag handlers.
+
+2. **Animation defaults**: VisualCanvas animation objects need full defaults or TypeScript complains. See `AnimatedComponent` function.
+
+3. **API status codes**: POST returns 201, DELETE returns 204. Tests must expect these.
+
+4. **CORS**: Backend allows `http://localhost:3000`. Change in `backend/app/core/config.py` for production.
+
+5. **Preview data format**: Can be legacy (array) or new format (object with pages array). Preview page handles both.
+
+6. **Component types**: Main interface in `frontend/src/types/components.ts`. Includes styles, animations, data binding, custom code.
+
+7. **Project creation**: Auto-creates a "Home" page. See `backend/app/api/projects.py` create_project endpoint.
+
+### Database Schema (Key Tables)
+
+```
+User (id, email, password_hash, plan, stripe_customer_id, github_access_token)
+  └── Project (id, user_id, name, design_system, settings)
+        ├── Page (id, project_id, name, slug, canvas_components[], is_homepage, position)
+        ├── Component (id, project_id, name, code, intent)  # AI-generated
+        └── ProjectMember (id, project_id, user_id, role)
+```
+
+### API Authentication
+
+All protected endpoints need: `Authorization: Bearer {access_token}`
+
+Get token:
+```bash
+# Register
+curl -X POST http://localhost:8000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@test.com","password":"pass123","name":"Test"}'
+
+# Login
+curl -X POST http://localhost:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@test.com","password":"pass123"}'
+```
+
+### Frontend State (Zustand Stores)
+
+| Store | Key State | Location |
+|-------|-----------|----------|
+| `authStore` | user, tokens, isAuthenticated | `stores/authStore.ts` |
+| `projectStore` | projects, currentProject, pages, currentPage, components | `stores/projectStore.ts` |
+| `themeStore` | theme tokens, palettes | `stores/themeStore.ts` |
+
+### Component Library Categories
+
+Heroes, Navbars, Features, Pricing, Testimonials, FAQ, CTA, Footers, Cards, Forms, Stats, Teams, Logos, Galleries, Sidebars, Dashboards, Grids, Sections, Dividers, Spacers
+
+100+ total components defined in `ComponentLibrary.tsx`.
+
+---
+
 ## Auto-Start Instructions
 
 **When user starts a new session, automatically run:**
