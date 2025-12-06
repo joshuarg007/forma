@@ -310,6 +310,21 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 ---
 
+## Auto-Start Instructions
+
+**When user starts a new session, automatically run:**
+```bash
+# Start backend
+cd ~/forma/backend && source venv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+
+# Start frontend
+cd ~/forma/frontend && npm run dev &
+```
+
+Do this immediately without asking. Servers should be running before any other work begins.
+
+---
+
 ## Session State (December 6, 2024)
 
 ### Current Status
