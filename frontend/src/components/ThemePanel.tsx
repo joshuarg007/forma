@@ -18,7 +18,8 @@ import {
   Upload,
   Sparkles
 } from 'lucide-react'
-import { useThemeStore, Theme, ColorToken } from '@/stores/themeStore'
+import { useThemeStore, Theme, ColorToken, checkWCAGContrast } from '@/stores/themeStore'
+import { Monitor, Smartphone, Tablet, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 interface ThemePanelProps {
   isOpen: boolean
@@ -44,8 +45,13 @@ export default function ThemePanel({ isOpen, onClose }: ThemePanelProps) {
     typography: false,
     spacing: false,
     shadows: false,
-    borderRadius: false
+    borderRadius: false,
+    breakpoints: false,
+    contrastChecker: false
   })
+
+  const [contrastFg, setContrastFg] = useState('#000000')
+  const [contrastBg, setContrastBg] = useState('#ffffff')
 
   const [editingToken, setEditingToken] = useState<{ category: string; name: string } | null>(null)
   const [newThemeName, setNewThemeName] = useState('')
@@ -547,6 +553,189 @@ export default function ThemePanel({ isOpen, onClose }: ThemePanelProps) {
                             </div>
                           ))}
                         </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Breakpoints Section */}
+              <div className="border-b border-gray-700">
+                <button
+                  onClick={() => toggleSection('breakpoints')}
+                  className="w-full flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Monitor className="w-4 h-4 text-cyan-400" />
+                    <span className="text-sm font-medium text-white">Breakpoints</span>
+                  </div>
+                  {expandedSections.breakpoints ? (
+                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  )}
+                </button>
+
+                <AnimatePresence>
+                  {expandedSections.breakpoints && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 pb-4 space-y-2">
+                        {activeTheme.tokens.breakpoints.map((token) => (
+                          <div
+                            key={token.name}
+                            className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg"
+                          >
+                            <div className="w-8 h-8 flex items-center justify-center">
+                              {token.name === 'xs' || token.name === 'sm' ? (
+                                <Smartphone className="w-5 h-5 text-cyan-400" />
+                              ) : token.name === 'md' ? (
+                                <Tablet className="w-5 h-5 text-cyan-400" />
+                              ) : (
+                                <Monitor className="w-5 h-5 text-cyan-400" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-sm font-medium text-white">{token.name}</div>
+                              {token.description && (
+                                <div className="text-xs text-gray-500">{token.description}</div>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-400 font-mono">{token.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Contrast Checker Section */}
+              <div className="border-b border-gray-700">
+                <button
+                  onClick={() => toggleSection('contrastChecker')}
+                  className="w-full flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-yellow-400" />
+                    <span className="text-sm font-medium text-white">Contrast Checker</span>
+                  </div>
+                  {expandedSections.contrastChecker ? (
+                    <ChevronDown className="w-4 h-4 text-gray-400" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  )}
+                </button>
+
+                <AnimatePresence>
+                  {expandedSections.contrastChecker && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 pb-4 space-y-4">
+                        {/* Color pickers */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-xs text-gray-400 mb-2 block">Foreground</label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                value={contrastFg}
+                                onChange={(e) => setContrastFg(e.target.value)}
+                                className="w-10 h-10 rounded cursor-pointer border border-gray-600"
+                              />
+                              <input
+                                type="text"
+                                value={contrastFg}
+                                onChange={(e) => setContrastFg(e.target.value)}
+                                className="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm text-white font-mono"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-xs text-gray-400 mb-2 block">Background</label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                value={contrastBg}
+                                onChange={(e) => setContrastBg(e.target.value)}
+                                className="w-10 h-10 rounded cursor-pointer border border-gray-600"
+                              />
+                              <input
+                                type="text"
+                                value={contrastBg}
+                                onChange={(e) => setContrastBg(e.target.value)}
+                                className="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm text-white font-mono"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Preview */}
+                        <div
+                          className="p-4 rounded-lg text-center"
+                          style={{ backgroundColor: contrastBg, color: contrastFg }}
+                        >
+                          <div className="text-2xl font-bold mb-1">Aa</div>
+                          <div className="text-sm">Sample Text Preview</div>
+                        </div>
+
+                        {/* WCAG Results */}
+                        {(() => {
+                          const result = checkWCAGContrast(contrastFg, contrastBg)
+                          return (
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between p-2 bg-gray-800 rounded">
+                                <span className="text-sm text-gray-300">Contrast Ratio</span>
+                                <span className="text-lg font-bold text-white">{result.ratio}:1</span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className={`flex items-center gap-2 p-2 rounded ${result.aa ? 'bg-green-900/30' : 'bg-red-900/30'}`}>
+                                  {result.aa ? (
+                                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                  ) : (
+                                    <AlertCircle className="w-4 h-4 text-red-400" />
+                                  )}
+                                  <span className="text-xs text-gray-300">AA Normal</span>
+                                </div>
+                                <div className={`flex items-center gap-2 p-2 rounded ${result.aaLarge ? 'bg-green-900/30' : 'bg-red-900/30'}`}>
+                                  {result.aaLarge ? (
+                                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                  ) : (
+                                    <AlertCircle className="w-4 h-4 text-red-400" />
+                                  )}
+                                  <span className="text-xs text-gray-300">AA Large</span>
+                                </div>
+                                <div className={`flex items-center gap-2 p-2 rounded ${result.aaa ? 'bg-green-900/30' : 'bg-red-900/30'}`}>
+                                  {result.aaa ? (
+                                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                  ) : (
+                                    <AlertCircle className="w-4 h-4 text-red-400" />
+                                  )}
+                                  <span className="text-xs text-gray-300">AAA Normal</span>
+                                </div>
+                                <div className={`flex items-center gap-2 p-2 rounded ${result.aaaLarge ? 'bg-green-900/30' : 'bg-red-900/30'}`}>
+                                  {result.aaaLarge ? (
+                                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                  ) : (
+                                    <AlertCircle className="w-4 h-4 text-red-400" />
+                                  )}
+                                  <span className="text-xs text-gray-300">AAA Large</span>
+                                </div>
+                              </div>
+                              <p className="text-xs text-gray-500 mt-2">
+                                WCAG 2.1 requires 4.5:1 for normal text (AA) and 7:1 for enhanced contrast (AAA).
+                              </p>
+                            </div>
+                          )
+                        })()}
                       </div>
                     </motion.div>
                   )}
