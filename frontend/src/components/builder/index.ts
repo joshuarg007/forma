@@ -49,6 +49,21 @@ export { CountdownTimer, SocialProof, Marquee } from './marketing'
 // Templates
 export { SaaSLanding, Portfolio, BlogHome } from './templates'
 
+// Blog Modules (Tier 4)
+export { BlogList, BlogPost, AuthorBio, RelatedPosts, CategoryFilter, SearchResults } from './blog'
+
+// Portfolio Modules (Tier 4)
+export { PortfolioGrid, CaseStudy, ProjectCard, ClientList, SkillsChart } from './portfolio'
+
+// Dashboard Modules (Tier 4)
+export { MetricCard, ActivityFeed, ChartWidget, ProgressBar, DataCard } from './dashboard'
+
+// Interactive Modules (Tier 4)
+export { Quiz, Poll, Calculator, ProgressTracker, RatingInput, Slider } from './interactive'
+
+// Social Modules (Tier 4)
+export { SocialFeed, ShareButtons, CommentSection, FollowCard, UserCard } from './social'
+
 // Module Registry - maps component IDs to their implementations
 import { Container, Section, Grid, FlexRow, FlexColumn } from './layout'
 import { HeroSimple, HeroSplit, HeroVideo, HeroAnimated, HeroGradient, HeroParallax } from './hero'
@@ -65,6 +80,21 @@ import { PricingSection, TestimonialsSection, TeamSection, FAQSection, FeatureSh
 import { ProductCard, CartSummary } from './ecommerce'
 import { CountdownTimer, SocialProof, Marquee } from './marketing'
 import { SaaSLanding, Portfolio, BlogHome } from './templates'
+
+// Blog Tier 4 imports
+import { BlogList, BlogPost, AuthorBio, RelatedPosts, CategoryFilter, SearchResults } from './blog'
+
+// Portfolio Tier 4 imports
+import { PortfolioGrid, CaseStudy, ProjectCard, ClientList, SkillsChart } from './portfolio'
+
+// Dashboard Tier 4 imports
+import { MetricCard, ActivityFeed, ChartWidget, ProgressBar, DataCard } from './dashboard'
+
+// Interactive Tier 4 imports
+import { Quiz, Poll, Calculator, ProgressTracker, RatingInput, Slider } from './interactive'
+
+// Social Tier 4 imports
+import { SocialFeed, ShareButtons, CommentSection, FollowCard, UserCard } from './social'
 
 export const moduleRegistry = {
   // Layout
@@ -175,6 +205,43 @@ export const moduleRegistry = {
   'saas-landing-template': SaaSLanding,
   'portfolio-template': Portfolio,
   'blog-home-template': BlogHome,
+
+  // Blog Tier 4
+  'blog-list': BlogList,
+  'blog-post': BlogPost,
+  'author-bio': AuthorBio,
+  'related-posts': RelatedPosts,
+  'category-filter': CategoryFilter,
+  'search-results': SearchResults,
+
+  // Portfolio Tier 4
+  'portfolio-grid': PortfolioGrid,
+  'case-study': CaseStudy,
+  'project-card': ProjectCard,
+  'client-list': ClientList,
+  'skills-chart': SkillsChart,
+
+  // Dashboard Tier 4
+  'metric-card': MetricCard,
+  'activity-feed': ActivityFeed,
+  'chart-widget': ChartWidget,
+  'progress-bar': ProgressBar,
+  'data-card': DataCard,
+
+  // Interactive Tier 4
+  'quiz': Quiz,
+  'poll': Poll,
+  'calculator': Calculator,
+  'progress-tracker': ProgressTracker,
+  'rating-input': RatingInput,
+  'slider': Slider,
+
+  // Social Tier 4
+  'social-feed': SocialFeed,
+  'share-buttons': ShareButtons,
+  'comment-section': CommentSection,
+  'follow-card': FollowCard,
+  'user-card': UserCard,
 } as const
 
 export type ModuleType = keyof typeof moduleRegistry
