@@ -46,6 +46,9 @@ export { ProductCard, CartSummary } from './ecommerce'
 // Marketing Modules
 export { CountdownTimer, SocialProof, Marquee } from './marketing'
 
+// Templates
+export { SaaSLanding, Portfolio, BlogHome } from './templates'
+
 // Module Registry - maps component IDs to their implementations
 import { Container, Section, Grid, FlexRow, FlexColumn } from './layout'
 import { HeroSimple, HeroSplit, HeroVideo, HeroAnimated, HeroGradient, HeroParallax } from './hero'
@@ -61,6 +64,7 @@ import { Alert, Modal, Toast } from './feedback'
 import { PricingSection, TestimonialsSection, TeamSection, FAQSection, FeatureShowcase, StatsSection, LogoCloudSection } from './sections'
 import { ProductCard, CartSummary } from './ecommerce'
 import { CountdownTimer, SocialProof, Marquee } from './marketing'
+import { SaaSLanding, Portfolio, BlogHome } from './templates'
 
 export const moduleRegistry = {
   // Layout
@@ -166,6 +170,11 @@ export const moduleRegistry = {
   'countdown-timer': CountdownTimer,
   'social-proof': SocialProof,
   'marquee': Marquee,
+
+  // Templates
+  'saas-landing-template': SaaSLanding,
+  'portfolio-template': Portfolio,
+  'blog-home-template': BlogHome,
 } as const
 
 export type ModuleType = keyof typeof moduleRegistry

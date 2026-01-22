@@ -1812,6 +1812,12 @@ Like Supabase, but Python. Like Strapi, but faster."
 
 ### Phase C: Builder Infrastructure
 
+- [ ] **OAuth Integration**
+  - [ ] Google OAuth login/signup
+  - [ ] GitHub OAuth login/signup
+  - [ ] Social login buttons on auth page
+  - [ ] Account linking (existing email -> OAuth)
+
 - [ ] **Drag-and-Drop System**
   - [ ] Module palette with search
   - [ ] Drag preview with snap guides
