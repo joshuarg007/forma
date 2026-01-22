@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { ArrowRight, Sparkles, Code, Zap, Download } from 'lucide-react'
 
@@ -10,11 +11,29 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="fixed top-0 w-full z-50 border-b border-white/10 bg-forma-950/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-forma-400 to-forma-600 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold text-white">FORMA</span>
+          <Link href="/" className="flex items-center gap-2">
+            {/* Logo mark for mobile */}
+            <Image
+              src="/logos/forma-logo-mark.png"
+              alt="FORMA - AI-Powered React App Builder"
+              width={128}
+              height={118}
+              className="h-8 w-auto md:hidden"
+            />
+            {/* Full logo for desktop */}
+            <Image
+              src="/logos/forma-logo-full.png"
+              alt="FORMA - AI-Powered React App Builder"
+              width={360}
+              height={98}
+              className="h-8 w-auto hidden md:block"
+            />
+          </Link>
+          <div className="hidden md:flex items-center gap-8">
+            <Link href="/features" className="text-white/70 hover:text-white transition">Features</Link>
+            <Link href="/pricing" className="text-white/70 hover:text-white transition">Pricing</Link>
+            <Link href="/about" className="text-white/70 hover:text-white transition">About</Link>
+            <Link href="/contact" className="text-white/70 hover:text-white transition">Contact</Link>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/auth" className="text-white/70 hover:text-white transition">
@@ -159,16 +178,61 @@ export default function LandingPage() {
             {[
               {
                 icon: Sparkles,
+                image: '/features/feature-ai-generation.png',
                 title: 'AI Generation',
                 description: 'Describe components in plain English. Our AI builds them instantly with TypeScript and Tailwind.',
               },
               {
+                icon: Zap,
+                image: '/features/feature-drag-and-drop.png',
+                title: 'Drag & Drop Builder',
+                description: 'Intuitive visual builder with 100+ components. Build pages in minutes, not hours.',
+              },
+              {
                 icon: Code,
-                title: 'Clean Code',
-                description: 'Every component follows best practices. Export production-ready code you\'d be proud of.',
+                image: '/features/feature-design-system.png',
+                title: 'Design System',
+                description: 'Built-in theme management with design tokens. Consistent styling across your entire app.',
+              },
+            ].map((feature, i) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 * i }}
+                className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-forma-500/50 transition group"
+              >
+                <div className="relative h-40 mb-4 rounded-lg overflow-hidden bg-white/5">
+                  <Image
+                    src={feature.image}
+                    alt={`FORMA AI-Powered React App Builder - ${feature.title}`}
+                    fill
+                    className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-forma-500/20 flex items-center justify-center">
+                    <feature.icon className="w-5 h-5 text-forma-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white">{feature.title}</h3>
+                </div>
+                <p className="text-white/60">{feature.description}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Second row of features */}
+          <div className="grid md:grid-cols-2 gap-8 mt-8 max-w-4xl mx-auto">
+            {[
+              {
+                icon: Zap,
+                image: '/features/feature-real-time-collaboration.png',
+                title: 'Real-Time Collaboration',
+                description: 'Work together with your team in real-time. See cursors, changes, and comments instantly.',
               },
               {
                 icon: Download,
+                image: '/features/feature-export-to-code.png',
                 title: 'One-Click Export',
                 description: 'Export your entire project as Next.js or Vite. Ready to deploy immediately.',
               },
@@ -177,13 +241,23 @@ export default function LandingPage() {
                 key={feature.title}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 * i }}
-                className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-forma-500/50 transition"
+                transition={{ duration: 0.5, delay: 0.3 + 0.1 * i }}
+                className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-forma-500/50 transition group"
               >
-                <div className="w-12 h-12 rounded-xl bg-forma-500/20 flex items-center justify-center mb-4">
-                  <feature.icon className="w-6 h-6 text-forma-400" />
+                <div className="relative h-40 mb-4 rounded-lg overflow-hidden bg-white/5">
+                  <Image
+                    src={feature.image}
+                    alt={`FORMA AI-Powered React App Builder - ${feature.title}`}
+                    fill
+                    className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+                  />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-forma-500/20 flex items-center justify-center">
+                    <feature.icon className="w-5 h-5 text-forma-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white">{feature.title}</h3>
+                </div>
                 <p className="text-white/60">{feature.description}</p>
               </motion.div>
             ))}
@@ -244,16 +318,51 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 py-8 px-6">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-forma-500 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
+      <footer className="border-t border-white/10 py-12 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <Link href="/" className="flex items-center gap-2 mb-4">
+                <Image
+                  src="/logos/forma-logo-full.png"
+                  alt="FORMA - AI-Powered React App Builder"
+                  width={360}
+                  height={98}
+                  className="h-7 w-auto"
+                />
+              </Link>
+              <p className="text-sm text-white/40">
+                AI-powered React development platform.
+              </p>
             </div>
-            <span className="text-white/60">FORMA</span>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Product</h4>
+              <ul className="space-y-2 text-sm text-white/60">
+                <li><Link href="/features" className="hover:text-white transition">Features</Link></li>
+                <li><Link href="/pricing" className="hover:text-white transition">Pricing</Link></li>
+                <li><Link href="/marketplace" className="hover:text-white transition">Marketplace</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Company</h4>
+              <ul className="space-y-2 text-sm text-white/60">
+                <li><Link href="/about" className="hover:text-white transition">About</Link></li>
+                <li><Link href="/contact" className="hover:text-white transition">Contact</Link></li>
+                <li><Link href="/faq" className="hover:text-white transition">FAQ</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold text-white mb-4">Legal</h4>
+              <ul className="space-y-2 text-sm text-white/60">
+                <li><Link href="/privacy" className="hover:text-white transition">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="hover:text-white transition">Terms of Service</Link></li>
+              </ul>
+            </div>
           </div>
-          <div className="text-white/40 text-sm">
-            &copy; 2024 FORMA. All rights reserved.
+          <div className="pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-white/40">
+              &copy; {new Date().getFullYear()} FORMA. All rights reserved.
+            </p>
           </div>
         </div>
       </footer>

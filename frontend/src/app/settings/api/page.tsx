@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Key, Plus, Copy, Trash2, Eye, EyeOff, Clock, AlertCircle,
@@ -204,8 +205,13 @@ export default function APIKeysPage() {
       <div className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden mb-6">
         {apiKeys.length === 0 ? (
           <div className="text-center py-16">
-            <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4">
-              <Key className="w-8 h-8 text-white/40" />
+            <div className="relative w-48 h-36 mx-auto mb-4">
+              <Image
+                src="/empty-states/empty-no-api-keys.png"
+                alt="FORMA AI-Powered React App Builder - No API Keys"
+                fill
+                className="object-contain"
+              />
             </div>
             <h3 className="text-lg font-medium text-white mb-2">No API keys yet</h3>
             <p className="text-white/60 mb-4">Create your first API key to get started</p>

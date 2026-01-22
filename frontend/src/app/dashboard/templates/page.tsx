@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import {
   Layout, Search, Grid, List, Filter, ChevronDown, Eye, Plus,
@@ -39,7 +40,7 @@ const mockTemplates: Template[] = [
     name: 'SaaS Landing Pro',
     category: 'saas',
     description: 'Modern SaaS landing page with hero, features, pricing, and testimonials.',
-    preview_url: '/templates/saas-landing.png',
+    preview_url: '/templates/template-saas-landing.png',
     uses: 2450,
     rating: 4.9,
     isPremium: false,
@@ -49,7 +50,7 @@ const mockTemplates: Template[] = [
     name: 'Admin Dashboard',
     category: 'dashboard',
     description: 'Complete admin dashboard with charts, tables, and widgets.',
-    preview_url: '/templates/admin-dashboard.png',
+    preview_url: '/templates/dashboard-template.png',
     uses: 1890,
     rating: 4.8,
     isPremium: true,
@@ -59,7 +60,7 @@ const mockTemplates: Template[] = [
     name: 'E-commerce Store',
     category: 'ecommerce',
     description: 'Full e-commerce template with product grid, cart, and checkout.',
-    preview_url: '/templates/ecommerce.png',
+    preview_url: '/templates/template-ecommerce.png',
     uses: 1560,
     rating: 4.7,
     isPremium: true,
@@ -69,27 +70,27 @@ const mockTemplates: Template[] = [
     name: 'Developer Portfolio',
     category: 'portfolio',
     description: 'Clean portfolio template for developers and designers.',
-    preview_url: '/templates/portfolio.png',
+    preview_url: '/templates/template-portfolio.png',
     uses: 1230,
     rating: 4.9,
     isPremium: false,
   },
   {
     id: '5',
-    name: 'Startup Landing',
+    name: 'Blog Platform',
     category: 'landing',
-    description: 'Conversion-focused landing page for startups.',
-    preview_url: '/templates/startup.png',
+    description: 'Content-focused blog template with featured posts and categories.',
+    preview_url: '/templates/template-blog.png',
     uses: 980,
     rating: 4.6,
     isPremium: false,
   },
   {
     id: '6',
-    name: 'Agency Website',
+    name: 'Documentation Site',
     category: 'landing',
-    description: 'Professional agency website with case studies and team sections.',
-    preview_url: '/templates/agency.png',
+    description: 'Clean documentation template for products and APIs.',
+    preview_url: '/templates/template-documentation.png',
     uses: 870,
     rating: 4.8,
     isPremium: true,
@@ -206,8 +207,13 @@ export default function TemplatesPage() {
       {/* Templates Grid */}
       {filteredTemplates.length === 0 ? (
         <div className="text-center py-20">
-          <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4">
-            <Layout className="w-10 h-10 text-white/40" />
+          <div className="relative w-48 h-36 mx-auto mb-4">
+            <Image
+              src="/empty-states/empty-no-templates.png"
+              alt="FORMA AI-Powered React App Builder - No Templates"
+              fill
+              className="object-contain"
+            />
           </div>
           <h3 className="text-xl font-medium text-white mb-2">No templates found</h3>
           <p className="text-white/60">Try adjusting your search or filters</p>
@@ -224,9 +230,12 @@ export default function TemplatesPage() {
             >
               {/* Preview */}
               <div className="aspect-[16/10] bg-gradient-to-br from-forma-500/10 to-purple-500/10 relative overflow-hidden">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <FileCode className="w-16 h-16 text-white/10" />
-                </div>
+                <Image
+                  src={template.preview_url}
+                  alt={`FORMA AI-Powered React App Builder - ${template.name} Template`}
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-300"
+                />
 
                 {template.isPremium && (
                   <div className="absolute top-3 right-3 px-2 py-1 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-medium flex items-center gap-1">

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import {
   Plus, FolderOpen, Trash2, Sparkles, Zap, ChevronRight, ArrowUpRight,
@@ -202,8 +203,13 @@ export default function DashboardPage() {
               </div>
             ) : projects.length === 0 ? (
               <div className="text-center py-12 px-6">
-                <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4">
-                  <FolderOpen className="w-8 h-8 text-white/40" />
+                <div className="relative w-48 h-36 mx-auto mb-4">
+                  <Image
+                    src="/empty-states/empty-no-projects.png"
+                    alt="FORMA AI-Powered React App Builder - No Projects"
+                    fill
+                    className="object-contain"
+                  />
                 </div>
                 <h3 className="text-lg font-medium text-white mb-2">No projects yet</h3>
                 <p className="text-sm text-white/60 mb-4">Create your first project to get started</p>

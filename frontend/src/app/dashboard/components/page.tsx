@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Sparkles, Search, Grid, List, MoreVertical, Code, Eye, Copy,
@@ -170,8 +171,13 @@ export default function ComponentsPage() {
         </div>
       ) : filteredComponents.length === 0 ? (
         <div className="text-center py-20">
-          <div className="w-20 h-20 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="w-10 h-10 text-white/40" />
+          <div className="relative w-48 h-36 mx-auto mb-4">
+            <Image
+              src="/empty-states/empty-no-components.png"
+              alt="FORMA AI-Powered React App Builder - No Components"
+              fill
+              className="object-contain"
+            />
           </div>
           <h3 className="text-xl font-medium text-white mb-2">
             {searchQuery ? 'No components found' : 'No AI components yet'}

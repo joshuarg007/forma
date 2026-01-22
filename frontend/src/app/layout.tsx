@@ -13,8 +13,29 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'FORMA - AI-Powered React Builder',
-  description: 'Build React components with natural language',
+  metadataBase: new URL('https://forma.app'),
+  title: 'FORMA - AI-Powered React App Builder',
+  description: 'Build production-ready React applications with AI. Describe what you want in plain English and get clean, exportable code instantly.',
+  keywords: ['React', 'AI', 'component builder', 'web development', 'TypeScript', 'Tailwind CSS', 'no-code', 'low-code'],
+  authors: [{ name: 'FORMA' }],
+  creator: 'FORMA',
+  publisher: 'FORMA',
+  openGraph: {
+    title: 'FORMA - AI-Powered React App Builder',
+    description: 'Build production-ready React applications with AI. Describe what you want and get clean, exportable code instantly.',
+    url: 'https://forma.app',
+    siteName: 'FORMA',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'FORMA - AI-Powered React App Builder',
+    description: 'Build production-ready React applications with AI.',
+  },
+  icons: {
+    icon: '/logos/forma-favicon.png',
+    apple: '/logos/forma-favicon.png',
+  },
 }
 
 export default function RootLayout({

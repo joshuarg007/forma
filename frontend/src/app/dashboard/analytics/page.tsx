@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
+import Image from 'next/image'
 import {
   BarChart3, TrendingUp, TrendingDown, Sparkles, Users, FolderOpen,
   Layers, Clock, Calendar, ArrowUpRight, Eye, Zap, Activity,
@@ -109,6 +110,34 @@ export default function AnalyticsPage() {
       <div className="min-h-screen bg-forma-950 flex items-center justify-center">
         <div className="animate-spin w-8 h-8 border-2 border-forma-500 border-t-transparent rounded-full" />
       </div>
+    )
+  }
+
+  // Show empty state when no projects exist
+  if (projects.length === 0) {
+    return (
+      <AdminLayout>
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="relative w-48 h-36 mb-4">
+            <Image
+              src="/empty-states/empty-no-analytics-data.png"
+              alt="FORMA AI-Powered React App Builder - No Analytics Data"
+              fill
+              className="object-contain"
+            />
+          </div>
+          <h3 className="text-xl font-medium text-white mb-2">No analytics data yet</h3>
+          <p className="text-white/60 text-center max-w-md mb-6">
+            Start creating projects and generating components to see your analytics
+          </p>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="px-6 py-2 rounded-xl bg-forma-500 hover:bg-forma-600 text-white transition text-sm font-medium"
+          >
+            Create Your First Project
+          </button>
+        </div>
+      </AdminLayout>
     )
   }
 

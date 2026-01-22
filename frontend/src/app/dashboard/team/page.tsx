@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Users, Search, Plus, MoreVertical, Mail, Shield, Trash2,
@@ -241,7 +242,14 @@ export default function TeamPage() {
 
             {filteredMembers.length === 0 ? (
               <div className="text-center py-12">
-                <Users className="w-12 h-12 text-white/20 mx-auto mb-3" />
+                <div className="relative w-40 h-32 mx-auto mb-3">
+                  <Image
+                    src="/empty-states/empty-no-team-members.png"
+                    alt="FORMA AI-Powered React App Builder - No Team Members"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
                 <p className="text-white/60">No team members yet</p>
               </div>
             ) : (
