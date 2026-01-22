@@ -168,7 +168,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       >
         {/* Logo */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-white/10">
-          <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="flex items-center gap-3 hover:opacity-80 transition"
+          >
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-forma-400 to-forma-600 flex items-center justify-center shadow-lg shadow-forma-500/20">
               <Sparkles className="w-6 h-6 text-white" />
             </div>
@@ -181,7 +184,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 FORMA
               </motion.span>
             )}
-          </div>
+          </button>
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             className="hidden lg:flex p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition"

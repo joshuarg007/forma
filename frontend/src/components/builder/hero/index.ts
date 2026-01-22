@@ -1,0 +1,6 @@
+export { default as HeroSimple } from './HeroSimple'
+export { default as HeroSplit } from './HeroSplit'
+export { default as HeroVideo } from './HeroVideo'
+export { default as HeroAnimated } from './HeroAnimated'
+export { default as HeroGradient } from './HeroGradient'
+export { default as HeroParallax } from './HeroParallax'

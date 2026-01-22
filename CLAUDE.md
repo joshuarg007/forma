@@ -1,6 +1,89 @@
-# Forma - Visual Page Builder
+# Formabase - Full-Stack React App Builder
 
-## Project Overview
+> **FOR CLAUDE: This project has PIVOTED. Read `FORMABASE_ROADMAP.md` FIRST - it contains the complete architecture, build order, and implementation details.**
+
+---
+
+## PROJECT PIVOT (December 2024)
+
+**OLD**: Forma was a visual page builder (like Elementor)
+**NEW**: Formabase is a full-stack React app builder (like Bubble/Retool but for React)
+
+### Key Decisions Made:
+1. **Three products**: Runtime (open source), Builder (SaaS), CMS (SaaS)
+2. **Runtime language**: Python/FastAPI (standalone service)
+3. **Open source strategy**: Runtime is MIT licensed, Builder is proprietary
+4. **GitHub org**: `formabase`
+5. **Both REST and GraphQL APIs**
+
+### Read These Files:
+1. **`FORMABASE_ROADMAP.md`** - Complete technical roadmap, architecture, schema spec, implementation checklist
+2. **This file** - Quick reference for existing Builder code
+
+---
+
+## SESSION STATE (Update before ending each session)
+**Last Updated:** 2024-12-21
+
+### Where We Left Off:
+- **TASK IN PROGRESS**: Implementing missing dashboard/settings pages
+- See `SESSION_STATE.md` for detailed resume instructions
+- Created 11 page directories, NO page.tsx files (writes interrupted)
+
+### Current Running Services:
+| Service | Port | Location |
+|---------|------|----------|
+| Forma Frontend | 3000 | ~/forma/frontend |
+| Forma Backend | 8000 | ~/forma/backend |
+| **Formabase Runtime** | 8001 | ~/formabase/runtime |
+
+### Immediate Next Steps:
+1. **RESUME**: Create all 11 missing page.tsx files
+2. See `SESSION_STATE.md` for code patterns and API endpoints
+3. Start with HIGH priority pages first
+4. Test with `npm run build` after completion
+
+### Pages Status (ALL need page.tsx created):
+| Page | Priority |
+|------|----------|
+| /dashboard/projects | HIGH |
+| /dashboard/components | HIGH |
+| /dashboard/team | HIGH |
+| /dashboard/billing | HIGH |
+| /dashboard/templates | MEDIUM |
+| /dashboard/library | MEDIUM |
+| /dashboard/analytics | MEDIUM |
+| /settings/security | MEDIUM |
+| /settings/api | MEDIUM |
+| /marketplace/publish | MEDIUM |
+| /settings/appearance | LOW |
+
+### Current Blockers:
+- None (interrupted by user for offline save)
+
+---
+
+## What Exists Now (Original Forma Builder)
+
+The existing codebase is a working visual page builder. It will become the `formabase/forma` repo (Builder + CMS).
+
+**Current capabilities:**
+- Visual drag-drop canvas with 100+ components
+- Multi-page projects
+- AI component generation (Claude API)
+- Team collaboration
+- Marketplace
+- Export to Next.js/Vite
+
+**What needs to be added:**
+- Data model designer UI
+- Dynamic components (DataList, DataForm, etc.)
+- Connection to Runtime API
+- See `FORMABASE_ROADMAP.md` Phase 5-7
+
+---
+
+## Original Project Overview
 Forma is a visual page builder similar to Elementor/Webflow. Users can drag-and-drop components to build multi-page React websites without coding. Features AI-powered component generation, team collaboration, and a component marketplace.
 
 ## Tech Stack
@@ -436,45 +519,28 @@ Do this immediately without asking. Servers should be running before any other w
 
 ---
 
-## Session State (December 6, 2024)
+## Decisions Made (December 2024)
 
-### Current Status
-- All features working, tests passing
-- Servers confirmed running (backend :8000, frontend :3000)
-- Comprehensive documentation written
-- Future proposals documented in `FUTURE_PROPOSALS.md`
+### Direction Chosen: Full App Platform
 
-### Pending Decision: Next Steps
+After evaluating options, the decision was made to build Formabase as a **full-stack React app builder** rather than just a page builder.
 
-The following questions were asked but **user is unsure** - revisit next session:
+**Key decisions:**
+- Build own backend runtime (not integrate with Supabase/Firebase)
+- Python/FastAPI for runtime (matches existing backend skills)
+- Runtime is standalone service (not embedded)
+- Open source the runtime (MIT license)
+- GitHub org: `formabase`
+- Support both REST and GraphQL
 
-**1. Publishing Priority**: What's most important?
-- A) Vercel/Netlify one-click deploy
-- B) Built-in hosting (`project.forma.site`)
-- C) Static HTML export (no React, just HTML/CSS)
+**Target users:**
+- Developers who want to skip boilerplate
+- Agencies building client apps
+- Startups needing MVPs fast
 
-**2. Target Users**: Who is this primarily for?
-- A) Developers (speed up prototyping)
-- B) Designers (code-free building)
-- C) Marketers (landing pages)
-- D) Agencies (client work)
+**Monetization:**
+- Runtime: Free, open source
+- Builder: SaaS subscription
+- Hosting: Pay per deployed app
 
-**3. Monetization Model**: What's the business model?
-- A) SaaS subscriptions
-- B) Marketplace commissions
-- C) White-label licensing
-- D) Open source + hosting revenue
-
-**4. Next Feature Priority**: After publishing, what matters most?
-- A) Inline visual text editing
-- B) Better AI (content generation, full pages)
-- C) Comments/feedback system
-- D) More integrations (analytics, forms)
-
-**User Response**: "not sure"
-
-### Action for Next Session
-- Review these questions with user
-- Help user think through target audience and use cases
-- Once direction is clear, implement publishing feature first
-- See `FUTURE_PROPOSALS.md` for full feature roadmap
+**See `FORMABASE_ROADMAP.md` for complete details.**

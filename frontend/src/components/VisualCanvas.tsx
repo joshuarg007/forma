@@ -11,6 +11,7 @@ import {
   CornerDownRight, FolderOpen, Folder
 } from 'lucide-react'
 import { CanvasComponent, ComponentStyles, AnimationConfig } from '@/types/components'
+import QuickAddMenu from './QuickAddMenu'
 
 interface VisualCanvasProps {
   components: CanvasComponent[]
@@ -627,6 +628,8 @@ export default function VisualCanvas({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; componentId: string } | null>(null)
   const [clipboard, setClipboard] = useState<CanvasComponent | null>(null)
   const [isDraggingComponent, setIsDraggingComponent] = useState<string | null>(null)
+  const [showQuickAdd, setShowQuickAdd] = useState(false)
+  const [quickAddPosition, setQuickAddPosition] = useState<{ x: number; y: number } | undefined>()
   const canvasRef = useRef<HTMLDivElement>(null)
   const dragCounterRef = useRef(0)
 
@@ -819,6 +822,29 @@ export default function VisualCanvas({
     onComponentsChange(newComponents)
     onSelect(newComponent.id)
   }, [components, onComponentsChange, onSelect])
+
+  const handleQuickAddSelect = useCallback((item: { id: string; name: string }) => {
+    const newComponent: CanvasComponent = {
+      id: `${item.id}-${Date.now()}`,
+      type: item.id,
+      name: item.name,
+      props: {},
+      styles: {},
+    }
+    onComponentsChange([...components, newComponent])
+    onSelect(newComponent.id)
+    setShowQuickAdd(false)
+  }, [components, onComponentsChange, onSelect])
+
+  const openQuickAdd = useCallback((e?: React.MouseEvent) => {
+    if (e) {
+      const rect = (e.target as HTMLElement).getBoundingClientRect()
+      setQuickAddPosition({ x: rect.left + rect.width / 2, y: rect.bottom + 10 })
+    } else {
+      setQuickAddPosition(undefined)
+    }
+    setShowQuickAdd(true)
+  }, [])
 
   const moveComponent = useCallback((id: string, direction: 'up' | 'down') => {
     const index = components.findIndex(c => c.id === id)
@@ -1016,16 +1042,24 @@ export default function VisualCanvas({
             onDrop={handleDropAtEnd}
           >
             <div className="text-center">
-              <motion.div
-                className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-white shadow-xl flex items-center justify-center"
+              <motion.button
+                onClick={openQuickAdd}
+                className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-white shadow-xl flex items-center justify-center cursor-pointer hover:shadow-2xl hover:scale-105 transition-all group"
                 animate={{ y: [0, -8, 0] }}
                 transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <Plus className="w-12 h-12 text-indigo-500" />
-              </motion.div>
+                <Plus className="w-12 h-12 text-indigo-500 group-hover:text-indigo-600" />
+              </motion.button>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Start Building</h3>
-              <p className="text-gray-500 mb-4">Drag components from the library to start</p>
-              <p className="text-sm text-gray-400">or click a component to add it</p>
+              <p className="text-gray-500 mb-4">Click the + button or drag components from the library</p>
+              <button
+                onClick={openQuickAdd}
+                className="text-sm text-indigo-500 hover:text-indigo-600 font-medium"
+              >
+                Quick Add Component →
+              </button>
             </div>
           </div>
         ) : (
@@ -1417,6 +1451,19 @@ export default function VisualCanvas({
           </div>
         )}
       </div>
+
+      {/* Quick Add Menu */}
+      <AnimatePresence>
+        {showQuickAdd && (
+          <QuickAddMenu
+            isOpen={showQuickAdd}
+            onClose={() => setShowQuickAdd(false)}
+            onSelect={handleQuickAddSelect}
+            existingComponents={components.map(c => c.type)}
+            position={quickAddPosition}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

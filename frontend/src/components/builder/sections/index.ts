@@ -1,0 +1,7 @@
+export { default as PricingSection } from './PricingSection'
+export { default as TestimonialsSection } from './TestimonialsSection'
+export { default as TeamSection } from './TeamSection'
+export { default as FAQSection } from './FAQSection'
+export { default as FeatureShowcase } from './FeatureShowcase'
+export { default as StatsSection } from './StatsSection'
+export { default as LogoCloudSection } from './LogoCloudSection'

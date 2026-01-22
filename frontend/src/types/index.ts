@@ -2,6 +2,9 @@
 import type { CanvasComponent } from './components'
 export type { CanvasComponent }
 
+// Schema Types for Formabase Data Modeler
+export * from './schema'
+
 export interface User {
   id: string
   email: string
@@ -21,6 +24,7 @@ export interface Project {
   is_public: boolean
   created_at: string
   updated_at: string
+  pages_count?: number
 }
 
 export interface DesignSystem {
