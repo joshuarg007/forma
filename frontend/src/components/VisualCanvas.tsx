@@ -12,6 +12,13 @@ import {
 } from 'lucide-react'
 import { CanvasComponent, ComponentStyles, AnimationConfig } from '@/types/components'
 import QuickAddMenu from './QuickAddMenu'
+import {
+  getSmartSuggestions,
+  recordInteraction,
+  COMPONENT_REGISTRY,
+  ComponentType,
+  PredictionContext,
+} from '@/lib/componentAI'
 
 interface VisualCanvasProps {
   components: CanvasComponent[]
@@ -22,6 +29,187 @@ interface VisualCanvasProps {
   generating: boolean
   device: 'desktop' | 'tablet' | 'mobile'
   zoom: number
+}
+
+// Container types that can hold children
+const containerTypes = ['grid-2col', 'grid-3col', 'grid-4col', 'section', 'container', 'flexbox', 'flex-row', 'flex-col', 'grid-sidebar']
+
+// Number of slots for each container type
+const containerSlots: Record<string, number> = {
+  'grid-2col': 2,
+  'grid-3col': 3,
+  'grid-4col': 4,
+  'grid-sidebar': 2,
+  'section': 1,
+  'container': 1,
+  'flexbox': 3,
+  'flex-row': 1,
+  'flex-col': 1,
+}
+
+// Smart suggestions based on parent component type
+const smartSuggestions: Record<string, Array<{ id: string; name: string; icon: string }>> = {
+  // Grid layouts
+  'grid-2col': [
+    { id: 'card-basic', name: 'Card', icon: '🃏' },
+    { id: 'card-image', name: 'Image Card', icon: '🖼️' },
+    { id: 'stats', name: 'Stats', icon: '📊' },
+    { id: 'text', name: 'Text Block', icon: '📝' },
+    { id: 'image', name: 'Image', icon: '🖼️' },
+    { id: 'form-contact', name: 'Contact Form', icon: '📧' },
+  ],
+  'grid-3col': [
+    { id: 'card-basic', name: 'Card', icon: '🃏' },
+    { id: 'card-image', name: 'Image Card', icon: '🖼️' },
+    { id: 'stats', name: 'Stats', icon: '📊' },
+    { id: 'text', name: 'Text Block', icon: '📝' },
+    { id: 'team-member', name: 'Team Member', icon: '👤' },
+    { id: 'pricing-card', name: 'Pricing Card', icon: '💰' },
+  ],
+  'grid-4col': [
+    { id: 'card-basic', name: 'Card', icon: '🃏' },
+    { id: 'stats', name: 'Stat', icon: '📊' },
+    { id: 'image', name: 'Image', icon: '🖼️' },
+    { id: 'logo', name: 'Logo', icon: '🏷️' },
+    { id: 'avatar', name: 'Avatar', icon: '👤' },
+  ],
+  'grid-sidebar': [
+    { id: 'navbar-vertical', name: 'Sidebar Nav', icon: '📋' },
+    { id: 'card-basic', name: 'Card', icon: '🃏' },
+    { id: 'text', name: 'Content', icon: '📝' },
+    { id: 'form-contact', name: 'Form', icon: '📧' },
+  ],
+  // Sections and containers
+  'section': [
+    { id: 'hero-centered', name: 'Hero', icon: '🎯' },
+    { id: 'section-features', name: 'Features', icon: '✨' },
+    { id: 'section-testimonials', name: 'Testimonials', icon: '💬' },
+    { id: 'section-pricing', name: 'Pricing', icon: '💰' },
+    { id: 'section-cta', name: 'CTA', icon: '📢' },
+    { id: 'grid-3col', name: '3 Columns', icon: '▤' },
+  ],
+  'container': [
+    { id: 'card-basic', name: 'Card', icon: '🃏' },
+    { id: 'text', name: 'Text', icon: '📝' },
+    { id: 'image', name: 'Image', icon: '🖼️' },
+    { id: 'button', name: 'Button', icon: '🔘' },
+    { id: 'form-contact', name: 'Form', icon: '📧' },
+  ],
+  // Flexbox
+  'flexbox': [
+    { id: 'card-basic', name: 'Card', icon: '🃏' },
+    { id: 'button', name: 'Button', icon: '🔘' },
+    { id: 'avatar', name: 'Avatar', icon: '👤' },
+    { id: 'image', name: 'Image', icon: '🖼️' },
+    { id: 'text', name: 'Text', icon: '📝' },
+  ],
+  'flex-row': [
+    { id: 'card-basic', name: 'Card', icon: '🃏' },
+    { id: 'button', name: 'Button', icon: '🔘' },
+    { id: 'avatar', name: 'Avatar', icon: '👤' },
+    { id: 'image', name: 'Image', icon: '🖼️' },
+  ],
+  'flex-col': [
+    { id: 'text', name: 'Text', icon: '📝' },
+    { id: 'heading', name: 'Heading', icon: '📰' },
+    { id: 'image', name: 'Image', icon: '🖼️' },
+    { id: 'button', name: 'Button', icon: '🔘' },
+    { id: 'form-newsletter', name: 'Newsletter', icon: '📧' },
+  ],
+  // Default for any container
+  'default': [
+    { id: 'card-basic', name: 'Card', icon: '🃏' },
+    { id: 'text', name: 'Text', icon: '📝' },
+    { id: 'image', name: 'Image', icon: '🖼️' },
+    { id: 'button', name: 'Button', icon: '🔘' },
+  ],
+}
+
+// Helper: Find component by ID in nested tree
+function findComponentById(
+  components: CanvasComponent[],
+  id: string
+): CanvasComponent | null {
+  for (const component of components) {
+    if (component.id === id) return component
+    if (component.children) {
+      const found = findComponentById(component.children, id)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+// Helper: Update component in nested tree
+function updateComponentInTree(
+  components: CanvasComponent[],
+  targetId: string,
+  updater: (component: CanvasComponent) => CanvasComponent
+): CanvasComponent[] {
+  return components.map(component => {
+    if (component.id === targetId) {
+      return updater(component)
+    }
+    if (component.children) {
+      return {
+        ...component,
+        children: updateComponentInTree(component.children, targetId, updater)
+      }
+    }
+    return component
+  })
+}
+
+// Helper: Remove component from nested tree
+function removeComponentFromTree(
+  components: CanvasComponent[],
+  id: string
+): CanvasComponent[] {
+  return components
+    .filter(component => component.id !== id)
+    .map(component => {
+      if (component.children) {
+        return {
+          ...component,
+          children: removeComponentFromTree(component.children, id)
+        }
+      }
+      return component
+    })
+}
+
+// Helper: Add component to parent's children at specific slot
+function addToParentSlot(
+  components: CanvasComponent[],
+  parentId: string,
+  slotIndex: number,
+  newComponent: CanvasComponent
+): CanvasComponent[] {
+  return components.map(component => {
+    if (component.id === parentId) {
+      const children = component.children || []
+      // Group children by slot index
+      const childrenBySlot: Record<number, CanvasComponent[]> = {}
+      children.forEach(child => {
+        const slot = child.props?.slotIndex ?? 0
+        if (!childrenBySlot[slot]) childrenBySlot[slot] = []
+        childrenBySlot[slot].push(child)
+      })
+      // Add new component to the correct slot
+      if (!childrenBySlot[slotIndex]) childrenBySlot[slotIndex] = []
+      childrenBySlot[slotIndex].push({ ...newComponent, props: { ...newComponent.props, slotIndex } })
+      // Flatten back to array
+      const newChildren = Object.values(childrenBySlot).flat()
+      return { ...component, children: newChildren }
+    }
+    if (component.children) {
+      return {
+        ...component,
+        children: addToParentSlot(component.children, parentId, slotIndex, newComponent)
+      }
+    }
+    return component
+  })
 }
 
 // Animation variants for entrance animations
@@ -49,42 +237,409 @@ const loopAnimations = {
   spin: { animate: { rotate: 360, transition: { repeat: Infinity, duration: 2, ease: 'linear' } } },
 }
 
+// Inline editable text component
+function EditableText({
+  value,
+  defaultValue,
+  onChange,
+  className,
+  as: Component = 'span',
+  multiline = false,
+}: {
+  value?: string
+  defaultValue: string
+  onChange?: (value: string) => void
+  className?: string
+  as?: 'h1' | 'h2' | 'h3' | 'p' | 'span' | 'div'
+  multiline?: boolean
+}) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editValue, setEditValue] = useState(value || defaultValue)
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    setEditValue(value || defaultValue)
+  }, [value, defaultValue])
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [isEditing])
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (onChange) {
+      e.stopPropagation()
+      setIsEditing(true)
+    }
+  }
+
+  const handleBlur = () => {
+    setIsEditing(false)
+    if (onChange && editValue !== (value || defaultValue)) {
+      onChange(editValue)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !multiline) {
+      e.preventDefault()
+      handleBlur()
+    }
+    if (e.key === 'Escape') {
+      setEditValue(value || defaultValue)
+      setIsEditing(false)
+    }
+  }
+
+  if (isEditing) {
+    const inputClass = `bg-transparent border-none outline-none w-full text-inherit font-inherit ${className || ''}`
+
+    if (multiline) {
+      return (
+        <textarea
+          ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          className={`${inputClass} resize-none`}
+          rows={3}
+          onClick={(e) => e.stopPropagation()}
+        />
+      )
+    }
+
+    return (
+      <input
+        ref={inputRef as React.RefObject<HTMLInputElement>}
+        type="text"
+        value={editValue}
+        onChange={(e) => setEditValue(e.target.value)}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        className={inputClass}
+        onClick={(e) => e.stopPropagation()}
+      />
+    )
+  }
+
+  return (
+    <Component
+      className={`${className || ''} ${onChange ? 'cursor-text hover:outline hover:outline-2 hover:outline-dashed hover:outline-white/30 hover:outline-offset-2 rounded' : ''}`}
+      onClick={handleClick}
+      title={onChange ? 'Click to edit' : undefined}
+    >
+      {value || defaultValue}
+    </Component>
+  )
+}
+
+// Smart Add Dropdown component with TensorFlow.js AI
+function SmartAddDropdown({
+  parentType,
+  onSelect,
+  existingChildren = [],
+  siblingComponents = [],
+  pageComponents = [],
+  className,
+}: {
+  parentType: string
+  onSelect: (item: { id: string; name: string }) => void
+  existingChildren?: string[]
+  siblingComponents?: string[]
+  pageComponents?: string[]
+  className?: string
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [suggestions, setSuggestions] = useState<Array<{ id: string; name: string; icon: string; reason?: string }>>([])
+  const [aiReady, setAiReady] = useState(false)
+
+  // Fetch AI suggestions when dropdown opens
+  useEffect(() => {
+    if (!isOpen) return
+
+    let cancelled = false
+
+    async function fetchSuggestions() {
+      setLoading(true)
+
+      try {
+        // Build context for AI
+        const context: PredictionContext = {
+          parentType: parentType as ComponentType,
+          existingChildren: existingChildren as ComponentType[],
+          siblingComponents: siblingComponents as ComponentType[],
+          pageComponents: pageComponents as ComponentType[],
+        }
+
+        // Get AI predictions (TensorFlow.js - runs in browser)
+        const predictions = await getSmartSuggestions(context, 6)
+
+        if (cancelled) return
+
+        // Map to display format
+        const mapped = predictions.map(p => {
+          const meta = COMPONENT_REGISTRY[p.componentType]
+          return {
+            id: p.componentType,
+            name: meta?.name || p.componentType,
+            icon: meta?.icon || '📦',
+            reason: p.reason,
+          }
+        })
+
+        setSuggestions(mapped)
+        setAiReady(true)
+      } catch (e) {
+        console.warn('[ComponentAI] Suggestions failed:', e)
+        // Fallback to static suggestions
+        const fallback = smartSuggestions[parentType] || smartSuggestions['default']
+        setSuggestions(fallback.map(s => ({ ...s, reason: undefined })))
+      }
+
+      setLoading(false)
+    }
+
+    fetchSuggestions()
+
+    return () => { cancelled = true }
+  }, [isOpen, parentType, existingChildren, siblingComponents, pageComponents])
+
+  // Handle selection - record for learning
+  const handleSelect = (item: { id: string; name: string }) => {
+    // Record this interaction for personalization
+    recordInteraction(
+      {
+        parentType: parentType as ComponentType,
+        existingChildren: existingChildren as ComponentType[],
+        siblingComponents: siblingComponents as ComponentType[],
+        pageComponents: pageComponents as ComponentType[],
+      },
+      item.id as ComponentType
+    )
+
+    onSelect(item)
+    setIsOpen(false)
+  }
+
+  return (
+    <div className={`relative ${className || ''}`}>
+      <motion.button
+        onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen) }}
+        className="w-10 h-10 rounded-xl bg-white shadow-lg border-2 border-dashed border-gray-300 hover:border-indigo-400 hover:shadow-xl flex items-center justify-center text-gray-400 hover:text-indigo-500 transition-all group"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        <Plus className="w-5 h-5" />
+      </motion.button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-40"
+              onClick={(e) => { e.stopPropagation(); setIsOpen(false) }}
+            />
+
+            {/* Dropdown */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -10 }}
+              className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header with AI status */}
+              <div className="px-3 py-1.5 flex items-center justify-between border-b border-gray-100 mb-1">
+                <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  Add Component
+                </span>
+                {loading ? (
+                  <span className="flex items-center gap-1 text-xs text-purple-500">
+                    <motion.span
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                      className="inline-block"
+                    >
+                      🧠
+                    </motion.span>
+                    Learning...
+                  </span>
+                ) : aiReady ? (
+                  <span className="flex items-center gap-1 text-xs text-emerald-600">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    AI
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="max-h-64 overflow-y-auto">
+                {suggestions.map((item, index) => (
+                  <button
+                    key={item.id}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleSelect({ id: item.id, name: item.name })
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition group"
+                  >
+                    <span className="text-base">{item.icon}</span>
+                    <div className="flex-1 text-left">
+                      <span className="block">{item.name}</span>
+                      {item.reason && (
+                        <span className="text-xs text-gray-400 group-hover:text-indigo-400 truncate block">
+                          {item.reason}
+                        </span>
+                      )}
+                    </div>
+                    {aiReady && index < 3 && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-600">
+                        AI
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Footer - personalization hint */}
+              <div className="px-3 py-2 border-t border-gray-100 mt-1">
+                <p className="text-[10px] text-gray-400 text-center">
+                  ✨ Learns from your choices
+                </p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 // Component previews - visual representations of each component type
+// Props include: name, content, onContentChange, and any other component props
 const componentPreviews: Record<string, (props: any) => JSX.Element> = {
-  'hero-centered': () => (
-    <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-8 text-center text-white">
-      <h1 className="text-3xl font-bold mb-4">Hero Section</h1>
-      <p className="text-white/80 mb-6">Your compelling tagline goes here</p>
-      <div className="flex gap-3 justify-center">
-        <button className="px-6 py-2 bg-white text-indigo-600 rounded-lg font-medium">Get Started</button>
-        <button className="px-6 py-2 border border-white/50 rounded-lg">Learn More</button>
+  'hero-centered': ({ content, onContentChange }: { content?: Record<string, any>; onContentChange?: (key: string, value: any) => void }) => {
+    const buttons = content?.buttons || [
+      { id: '1', text: 'Get Started', link: '', style: 'primary' },
+      { id: '2', text: 'Learn More', link: '', style: 'outline' },
+    ]
+    const buttonStyleClasses: Record<string, string> = {
+      primary: 'bg-white text-indigo-600',
+      secondary: 'bg-indigo-500 text-white',
+      outline: 'border border-white/50 text-white',
+      ghost: 'text-white hover:bg-white/10',
+    }
+    const updateButtonText = (btnId: string, newText: string) => {
+      if (!onContentChange) return
+      const updatedButtons = buttons.map((b: any) => b.id === btnId ? { ...b, text: newText } : b)
+      onContentChange('buttons', updatedButtons)
+    }
+    return (
+      <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-8 text-center text-white">
+        <EditableText
+          as="h1"
+          value={content?.title}
+          defaultValue="Hero Section"
+          onChange={onContentChange ? (v) => onContentChange('title', v) : undefined}
+          className="text-3xl font-bold mb-4"
+        />
+        <EditableText
+          as="p"
+          value={content?.subtitle}
+          defaultValue="Your compelling tagline goes here"
+          onChange={onContentChange ? (v) => onContentChange('subtitle', v) : undefined}
+          className="text-white/80 mb-6"
+          multiline
+        />
+        <div className="flex gap-3 justify-center flex-wrap">
+          {buttons.map((btn: { id: string; text: string; style: string }) => (
+            <button
+              key={btn.id}
+              className={`px-6 py-2 rounded-lg font-medium transition ${buttonStyleClasses[btn.style] || buttonStyleClasses.primary}`}
+            >
+              <EditableText
+                value={btn.text}
+                defaultValue="Button"
+                onChange={onContentChange ? (v) => updateButtonText(btn.id, v) : undefined}
+              />
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
-  ),
-  'hero-split': () => (
-    <div className="bg-gray-900 p-8 flex items-center gap-8">
-      <div className="flex-1 text-white">
-        <h1 className="text-3xl font-bold mb-4">Split Hero</h1>
-        <p className="text-gray-400 mb-6">Content on the left, image on the right</p>
-        <button className="px-6 py-2 bg-indigo-600 rounded-lg font-medium">Get Started</button>
+    )
+  },
+  'hero-split': ({ content, onContentChange }: { content?: Record<string, any>; onContentChange?: (key: string, value: any) => void }) => {
+    const buttons = content?.buttons || [{ id: '1', text: 'Get Started', link: '', style: 'primary' }]
+    const buttonStyleClasses: Record<string, string> = {
+      primary: 'bg-indigo-600 text-white',
+      secondary: 'bg-white text-indigo-600',
+      outline: 'border border-white/50 text-white',
+      ghost: 'text-white hover:bg-white/10',
+    }
+    const updateButtonText = (btnId: string, newText: string) => {
+      if (!onContentChange) return
+      const updatedButtons = buttons.map((b: any) => b.id === btnId ? { ...b, text: newText } : b)
+      onContentChange('buttons', updatedButtons)
+    }
+    return (
+      <div className="bg-gray-900 p-8 flex items-center gap-8">
+        <div className="flex-1 text-white">
+          <EditableText
+            as="h1"
+            value={content?.title}
+            defaultValue="Split Hero"
+            onChange={onContentChange ? (v) => onContentChange('title', v) : undefined}
+            className="text-3xl font-bold mb-4"
+          />
+          <EditableText
+            as="p"
+            value={content?.subtitle}
+            defaultValue="Content on the left, image on the right"
+            onChange={onContentChange ? (v) => onContentChange('subtitle', v) : undefined}
+            className="text-gray-400 mb-6"
+            multiline
+          />
+          <div className="flex gap-3 flex-wrap">
+            {buttons.map((btn: { id: string; text: string; style: string }) => (
+              <button
+                key={btn.id}
+                className={`px-6 py-2 rounded-lg font-medium transition ${buttonStyleClasses[btn.style] || buttonStyleClasses.primary}`}
+              >
+                <EditableText
+                  value={btn.text}
+                  defaultValue="Button"
+                  onChange={onContentChange ? (v) => updateButtonText(btn.id, v) : undefined}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex-1 bg-gray-800 rounded-xl h-48 flex items-center justify-center text-gray-500 overflow-hidden">
+          {content?.imageUrl ? (
+            <img src={content.imageUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            'Image Placeholder'
+          )}
+        </div>
       </div>
-      <div className="flex-1 bg-gray-800 rounded-xl h-48 flex items-center justify-center text-gray-500">
-        Image Placeholder
+    )
+  },
+  'navbar': ({ content }: { content?: Record<string, string> }) => {
+    const links = content?.links?.split(',').map(s => s.trim()) || ['Home', 'Features', 'Pricing', 'Contact']
+    return (
+      <div className="bg-white border-b px-6 py-4 flex items-center justify-between">
+        <div className="font-bold text-xl text-gray-900">{content?.brand || 'Logo'}</div>
+        <nav className="flex gap-6 text-gray-600">
+          {links.map((link, i) => <span key={i}>{link}</span>)}
+        </nav>
+        <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm">Sign Up</button>
       </div>
-    </div>
-  ),
-  'navbar': () => (
-    <div className="bg-white border-b px-6 py-4 flex items-center justify-between">
-      <div className="font-bold text-xl text-gray-900">Logo</div>
-      <nav className="flex gap-6 text-gray-600">
-        <span>Home</span>
-        <span>Features</span>
-        <span>Pricing</span>
-        <span>Contact</span>
-      </nav>
-      <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm">Sign Up</button>
-    </div>
-  ),
+    )
+  },
   'navbar-vertical': () => (
     <div className="h-full min-h-[100vh] w-64 bg-gray-900 text-white flex flex-col">
       <div className="p-4 border-b border-gray-800">
@@ -179,21 +734,58 @@ const componentPreviews: Record<string, (props: any) => JSX.Element> = {
       </div>
     </div>
   ),
-  'section-cta': () => (
-    <div className="bg-indigo-600 p-8 text-center text-white">
-      <h2 className="text-2xl font-bold mb-4">Ready to get started?</h2>
-      <p className="text-indigo-100 mb-6">Join thousands of happy customers today</p>
-      <button className="px-8 py-3 bg-white text-indigo-600 rounded-lg font-medium">
-        Start Free Trial
-      </button>
-    </div>
-  ),
-  'footer': () => (
+  'section-cta': ({ content, onContentChange }: { content?: Record<string, any>; onContentChange?: (key: string, value: any) => void }) => {
+    const buttons = content?.buttons || [{ id: '1', text: 'Start Free Trial', link: '', style: 'primary' }]
+    const buttonStyleClasses: Record<string, string> = {
+      primary: 'bg-white text-indigo-600',
+      secondary: 'bg-indigo-500 text-white border border-white',
+      outline: 'border border-white text-white',
+      ghost: 'text-white hover:bg-white/10',
+    }
+    const updateButtonText = (btnId: string, newText: string) => {
+      if (!onContentChange) return
+      const updatedButtons = buttons.map((b: any) => b.id === btnId ? { ...b, text: newText } : b)
+      onContentChange('buttons', updatedButtons)
+    }
+    return (
+      <div className="bg-indigo-600 p-8 text-center text-white">
+        <EditableText
+          as="h2"
+          value={content?.title}
+          defaultValue="Ready to get started?"
+          onChange={onContentChange ? (v) => onContentChange('title', v) : undefined}
+          className="text-2xl font-bold mb-4"
+        />
+        <EditableText
+          as="p"
+          value={content?.subtitle}
+          defaultValue="Join thousands of happy customers today"
+          onChange={onContentChange ? (v) => onContentChange('subtitle', v) : undefined}
+          className="text-indigo-100 mb-6"
+        />
+        <div className="flex gap-3 justify-center flex-wrap">
+          {buttons.map((btn: { id: string; text: string; style: string }) => (
+            <button
+              key={btn.id}
+              className={`px-8 py-3 rounded-lg font-medium transition ${buttonStyleClasses[btn.style] || buttonStyleClasses.primary}`}
+            >
+              <EditableText
+                value={btn.text}
+                defaultValue="Button"
+                onChange={onContentChange ? (v) => updateButtonText(btn.id, v) : undefined}
+              />
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  },
+  'footer': ({ content }: { content?: Record<string, string> }) => (
     <div className="bg-gray-900 p-8 text-white">
       <div className="grid grid-cols-4 gap-8 mb-8">
         <div>
-          <div className="font-bold text-xl mb-4">Logo</div>
-          <p className="text-gray-400 text-sm">Building the future</p>
+          <div className="font-bold text-xl mb-4">{content?.brand || 'Logo'}</div>
+          <p className="text-gray-400 text-sm">{content?.tagline || 'Building the future'}</p>
         </div>
         {['Product', 'Company', 'Resources'].map(col => (
           <div key={col}>
@@ -207,7 +799,7 @@ const componentPreviews: Record<string, (props: any) => JSX.Element> = {
         ))}
       </div>
       <div className="border-t border-gray-800 pt-6 text-center text-gray-500 text-sm">
-        © 2024 Company. All rights reserved.
+        {content?.copyright || '© 2024 Company. All rights reserved.'}
       </div>
     </div>
   ),
@@ -271,29 +863,69 @@ const componentPreviews: Record<string, (props: any) => JSX.Element> = {
       </div>
     </div>
   ),
-  'card-basic': () => (
+  'card-basic': ({ content, onContentChange }: { content?: Record<string, string>; onContentChange?: (key: string, value: any) => void }) => (
     <div className="bg-white p-6 rounded-xl shadow-lg max-w-sm mx-auto">
-      <h3 className="font-semibold text-gray-900 mb-2">Card Title</h3>
-      <p className="text-gray-500 text-sm">Card description goes here with some content.</p>
+      <EditableText
+        as="h3"
+        value={content?.title}
+        defaultValue="Card Title"
+        onChange={onContentChange ? (v) => onContentChange('title', v) : undefined}
+        className="font-semibold text-gray-900 mb-2"
+      />
+      <EditableText
+        as="p"
+        value={content?.description}
+        defaultValue="Card description goes here with some content."
+        onChange={onContentChange ? (v) => onContentChange('description', v) : undefined}
+        className="text-gray-500 text-sm"
+        multiline
+      />
     </div>
   ),
-  'card-image': () => (
+  'card-image': ({ content, onContentChange }: { content?: Record<string, string>; onContentChange?: (key: string, value: any) => void }) => (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden max-w-sm mx-auto">
-      <div className="h-40 bg-gradient-to-br from-indigo-400 to-purple-500" />
+      <div className="h-40 bg-gradient-to-br from-indigo-400 to-purple-500 overflow-hidden">
+        {content?.imageUrl && <img src={content.imageUrl} alt="" className="w-full h-full object-cover" />}
+      </div>
       <div className="p-6">
-        <h3 className="font-semibold text-gray-900 mb-2">Image Card</h3>
-        <p className="text-gray-500 text-sm">Card with image header</p>
+        <EditableText
+          as="h3"
+          value={content?.title}
+          defaultValue="Image Card"
+          onChange={onContentChange ? (v) => onContentChange('title', v) : undefined}
+          className="font-semibold text-gray-900 mb-2"
+        />
+        <EditableText
+          as="p"
+          value={content?.description}
+          defaultValue="Card with image header"
+          onChange={onContentChange ? (v) => onContentChange('description', v) : undefined}
+          className="text-gray-500 text-sm"
+          multiline
+        />
       </div>
     </div>
   ),
-  'form-contact': () => (
+  'form-contact': ({ content, onContentChange }: { content?: Record<string, string>; onContentChange?: (key: string, value: any) => void }) => (
     <div className="bg-white p-6 rounded-xl shadow-lg max-w-md mx-auto">
-      <h3 className="font-semibold text-gray-900 mb-4">Contact Us</h3>
+      <EditableText
+        as="h3"
+        value={content?.title}
+        defaultValue="Contact Us"
+        onChange={onContentChange ? (v) => onContentChange('title', v) : undefined}
+        className="font-semibold text-gray-900 mb-4"
+      />
       <div className="space-y-4">
         <input className="w-full px-4 py-2 border rounded-lg" placeholder="Name" />
         <input className="w-full px-4 py-2 border rounded-lg" placeholder="Email" />
         <textarea className="w-full px-4 py-2 border rounded-lg" placeholder="Message" rows={3} />
-        <button className="w-full py-2 bg-indigo-600 text-white rounded-lg">Send</button>
+        <button className="w-full py-2 bg-indigo-600 text-white rounded-lg">
+          <EditableText
+            value={content?.buttonText}
+            defaultValue="Send"
+            onChange={onContentChange ? (v) => onContentChange('buttonText', v) : undefined}
+          />
+        </button>
       </div>
     </div>
   ),
@@ -610,6 +1242,37 @@ function stylesToCSS(styles?: ComponentStyles): React.CSSProperties {
   if (styles.overflow) css.overflow = styles.overflow
   if (styles.visibility) css.visibility = styles.visibility
 
+  // Filters
+  if (styles.filter) {
+    const filters: string[] = []
+    if (styles.filter.blur) filters.push(`blur(${styles.filter.blur}px)`)
+    if (styles.filter.brightness !== undefined && styles.filter.brightness !== 100) filters.push(`brightness(${styles.filter.brightness}%)`)
+    if (styles.filter.contrast !== undefined && styles.filter.contrast !== 100) filters.push(`contrast(${styles.filter.contrast}%)`)
+    if (styles.filter.grayscale) filters.push(`grayscale(${styles.filter.grayscale}%)`)
+    if (styles.filter.hueRotate) filters.push(`hue-rotate(${styles.filter.hueRotate}deg)`)
+    if (styles.filter.invert) filters.push(`invert(${styles.filter.invert}%)`)
+    if (styles.filter.saturate !== undefined && styles.filter.saturate !== 100) filters.push(`saturate(${styles.filter.saturate}%)`)
+    if (styles.filter.sepia) filters.push(`sepia(${styles.filter.sepia}%)`)
+    if (filters.length > 0) css.filter = filters.join(' ')
+  }
+
+  // Backdrop Filter (glassmorphism)
+  if (styles.backdropFilter) {
+    const filters: string[] = []
+    if (styles.backdropFilter.blur) filters.push(`blur(${styles.backdropFilter.blur}px)`)
+    if (styles.backdropFilter.brightness !== undefined && styles.backdropFilter.brightness !== 100) filters.push(`brightness(${styles.backdropFilter.brightness}%)`)
+    if (styles.backdropFilter.contrast !== undefined && styles.backdropFilter.contrast !== 100) filters.push(`contrast(${styles.backdropFilter.contrast}%)`)
+    if (styles.backdropFilter.grayscale) filters.push(`grayscale(${styles.backdropFilter.grayscale}%)`)
+    if (styles.backdropFilter.saturate !== undefined && styles.backdropFilter.saturate !== 100) filters.push(`saturate(${styles.backdropFilter.saturate}%)`)
+    if (filters.length > 0) css.backdropFilter = filters.join(' ')
+  }
+
+  // Blend mode
+  if (styles.mixBlendMode) css.mixBlendMode = styles.mixBlendMode
+
+  // Cursor
+  if (styles.cursor) css.cursor = styles.cursor
+
   return css
 }
 
@@ -630,6 +1293,7 @@ export default function VisualCanvas({
   const [isDraggingComponent, setIsDraggingComponent] = useState<string | null>(null)
   const [showQuickAdd, setShowQuickAdd] = useState(false)
   const [quickAddPosition, setQuickAddPosition] = useState<{ x: number; y: number } | undefined>()
+  const [dragOverSlot, setDragOverSlot] = useState<{ parentId: string; slotIndex: number } | null>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const dragCounterRef = useRef(0)
 
@@ -699,7 +1363,9 @@ export default function VisualCanvas({
   }, [selectedId, clipboard])
 
   const handleCopy = useCallback(() => {
-    const component = components.find(c => c.id === selectedId)
+    if (!selectedId) return
+    // Search in root and nested components
+    const component = findComponentById(components, selectedId)
     if (component) {
       setClipboard({ ...component })
     }
@@ -803,22 +1469,56 @@ export default function VisualCanvas({
   }, [components, onComponentsChange, onSelect, isDraggingComponent])
 
   const deleteComponent = useCallback((id: string) => {
-    onComponentsChange(components.filter(c => c.id !== id))
+    // Try to find in root first
+    const rootIndex = components.findIndex(c => c.id === id)
+    if (rootIndex !== -1) {
+      onComponentsChange(components.filter(c => c.id !== id))
+    } else {
+      // Must be a nested component, use tree removal
+      onComponentsChange(removeComponentFromTree(components, id))
+    }
     if (selectedId === id) onSelect(null)
   }, [components, onComponentsChange, selectedId, onSelect])
 
   const duplicateComponent = useCallback((id: string) => {
-    const index = components.findIndex(c => c.id === id)
-    if (index === -1) return
-
-    const component = components[index]
-    const newComponent: CanvasComponent = {
-      ...component,
-      id: `${component.type}-${Date.now()}`,
+    // Check if it's a root component
+    const rootIndex = components.findIndex(c => c.id === id)
+    if (rootIndex !== -1) {
+      const component = components[rootIndex]
+      const newComponent: CanvasComponent = {
+        ...component,
+        id: `${component.type}-${Date.now()}`,
+        children: component.children ? component.children.map(c => ({
+          ...c,
+          id: `${c.type}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        })) : undefined,
+      }
+      const newComponents = [...components]
+      newComponents.splice(rootIndex + 1, 0, newComponent)
+      onComponentsChange(newComponents)
+      onSelect(newComponent.id)
+      return
     }
 
-    const newComponents = [...components]
-    newComponents.splice(index + 1, 0, newComponent)
+    // Handle nested component duplication
+    const found = findComponentById(components, id)
+    if (!found) return
+
+    const newComponent: CanvasComponent = {
+      ...found,
+      id: `${found.type}-${Date.now()}`,
+    }
+
+    // Find parent and add duplicate after original
+    const newComponents = updateComponentInTree(components, found.parentId!, (parent) => {
+      const children = parent.children || []
+      const childIndex = children.findIndex(c => c.id === id)
+      if (childIndex === -1) return parent
+      const newChildren = [...children]
+      newChildren.splice(childIndex + 1, 0, newComponent)
+      return { ...parent, children: newChildren }
+    })
+
     onComponentsChange(newComponents)
     onSelect(newComponent.id)
   }, [components, onComponentsChange, onSelect])
@@ -866,17 +1566,31 @@ export default function VisualCanvas({
   }, [components, onComponentsChange])
 
   const toggleLock = useCallback((id: string) => {
-    const newComponents = components.map(c =>
-      c.id === id ? { ...c, locked: !c.locked } : c
-    )
-    onComponentsChange(newComponents)
+    // Check if root component
+    if (components.some(c => c.id === id)) {
+      const newComponents = components.map(c =>
+        c.id === id ? { ...c, locked: !c.locked } : c
+      )
+      onComponentsChange(newComponents)
+    } else {
+      // Nested component
+      const newComponents = updateComponentInTree(components, id, c => ({ ...c, locked: !c.locked }))
+      onComponentsChange(newComponents)
+    }
   }, [components, onComponentsChange])
 
   const toggleHide = useCallback((id: string) => {
-    const newComponents = components.map(c =>
-      c.id === id ? { ...c, hidden: !c.hidden } : c
-    )
-    onComponentsChange(newComponents)
+    // Check if root component
+    if (components.some(c => c.id === id)) {
+      const newComponents = components.map(c =>
+        c.id === id ? { ...c, hidden: !c.hidden } : c
+      )
+      onComponentsChange(newComponents)
+    } else {
+      // Nested component
+      const newComponents = updateComponentInTree(components, id, c => ({ ...c, hidden: !c.hidden }))
+      onComponentsChange(newComponents)
+    }
   }, [components, onComponentsChange])
 
   const handleContextMenu = useCallback((e: React.MouseEvent, componentId: string) => {
@@ -949,9 +1663,280 @@ export default function VisualCanvas({
     setContextMenu(null)
   }, [contextMenu, components, onComponentsChange, handleCopy, handlePaste, deleteComponent, duplicateComponent, moveComponent, toggleLock, toggleHide])
 
+  // Handle drop into a container slot
+  const handleSlotDrop = useCallback((e: React.DragEvent, parentId: string, slotIndex: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverSlot(null)
+    setIsDraggingOver(false)
+
+    let data = e.dataTransfer.getData('text/plain')
+    if (!data) data = e.dataTransfer.getData('application/json')
+    if (!data) data = e.dataTransfer.getData('component')
+    if (!data) return
+
+    try {
+      const item = JSON.parse(data) as { id: string; name: string }
+      const newComponent: CanvasComponent = {
+        id: `${item.id}-${Date.now()}`,
+        type: item.id,
+        name: item.name,
+        props: { slotIndex },
+        parentId: parentId,
+      }
+      const newComponents = addToParentSlot(components, parentId, slotIndex, newComponent)
+      onComponentsChange(newComponents)
+      onSelect(newComponent.id)
+    } catch (error) {
+      console.error('Slot drop failed:', error)
+    }
+  }, [components, onComponentsChange, onSelect])
+
+  const handleSlotDragOver = useCallback((e: React.DragEvent, parentId: string, slotIndex: number) => {
+    e.preventDefault()
+    e.stopPropagation()
+    e.dataTransfer.dropEffect = 'copy'
+    setDragOverSlot({ parentId, slotIndex })
+  }, [])
+
+  const handleSlotDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragOverSlot(null)
+  }, [])
+
+  // Render a nested child component
+  const renderNestedComponent = (child: CanvasComponent) => {
+    const Preview = componentPreviews[child.type] || componentPreviews['default']
+    const isSelected = selectedId === child.id
+
+    // Create content change handler for nested component
+    const onNestedContentChange = (key: string, value: any) => {
+      handleContentChange(child.id, key, value)
+    }
+
+    return (
+      <motion.div
+        key={child.id}
+        layout
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className={`relative group/nested cursor-pointer transition-all ${
+          isSelected
+            ? 'ring-2 ring-indigo-500 ring-offset-2 z-10'
+            : 'hover:ring-2 hover:ring-indigo-300'
+        }`}
+        onClick={(e) => {
+          e.stopPropagation()
+          onSelect(child.id)
+        }}
+      >
+        {/* Nested component toolbar */}
+        {isSelected && (
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="absolute -top-8 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-1 bg-gray-900 rounded-lg shadow-xl z-30"
+          >
+            <span className="text-white text-xs px-1 truncate max-w-[80px]">{child.name}</span>
+            <button
+              onClick={(e) => { e.stopPropagation(); duplicateComponent(child.id) }}
+              className="p-1 text-gray-400 hover:text-white rounded"
+            >
+              <Copy className="w-3 h-3" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); deleteComponent(child.id) }}
+              className="p-1 text-gray-400 hover:text-red-400 rounded"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </motion.div>
+        )}
+        <div style={stylesToCSS(child.styles)}>
+          <Preview name={child.name} content={child.content} onContentChange={onNestedContentChange} {...child.props} />
+        </div>
+      </motion.div>
+    )
+  }
+
+  // Handle smart add selection
+  const handleSmartAdd = useCallback((parentId: string, slotIndex: number, item: { id: string; name: string }) => {
+    const newComponent: CanvasComponent = {
+      id: `${item.id}-${Date.now()}`,
+      type: item.id,
+      name: item.name,
+      props: { slotIndex },
+      parentId: parentId,
+    }
+    const newComponents = addToParentSlot(components, parentId, slotIndex, newComponent)
+    onComponentsChange(newComponents)
+    onSelect(newComponent.id)
+  }, [components, onComponentsChange, onSelect])
+
+  // Render a droppable slot for container components
+  const renderDroppableSlot = (parentId: string, slotIndex: number, slotChildren: CanvasComponent[], label: string, parentType: string, className?: string, allSlotsChildren?: CanvasComponent[][]) => {
+    const isOver = dragOverSlot?.parentId === parentId && dragOverSlot?.slotIndex === slotIndex
+    const hasChildren = slotChildren.length > 0
+
+    // Get existing children types for AI context
+    const existingChildTypes = slotChildren.map(c => c.type)
+    // Get sibling components (in other slots) for AI context
+    const siblingTypes = allSlotsChildren
+      ? allSlotsChildren.filter((_, i) => i !== slotIndex).flat().map(c => c.type)
+      : []
+    // Get page-level components for AI context
+    const pageComponentTypes = components.map(c => c.type)
+
+    return (
+      <div
+        key={slotIndex}
+        className={`${className || ''} min-h-[100px] transition-all duration-200 ${
+          isOver
+            ? 'bg-indigo-100 border-2 border-dashed border-indigo-500 ring-2 ring-indigo-300'
+            : hasChildren
+              ? 'bg-white'
+              : 'bg-white/50 border-2 border-dashed border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/30'
+        } rounded-lg`}
+        onDragOver={(e) => handleSlotDragOver(e, parentId, slotIndex)}
+        onDragLeave={handleSlotDragLeave}
+        onDrop={(e) => handleSlotDrop(e, parentId, slotIndex)}
+      >
+        {hasChildren ? (
+          <div className="p-2 space-y-2">
+            {slotChildren.map(child => renderNestedComponent(child))}
+          </div>
+        ) : (
+          <div className="h-full min-h-[100px] flex flex-col items-center justify-center text-gray-400 p-4 gap-2">
+            {isOver ? (
+              <span className="text-indigo-600 text-sm font-medium flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Drop here
+              </span>
+            ) : (
+              <>
+                <SmartAddDropdown
+                  parentType={parentType}
+                  existingChildren={existingChildTypes}
+                  siblingComponents={siblingTypes}
+                  pageComponents={pageComponentTypes}
+                  onSelect={(item) => handleSmartAdd(parentId, slotIndex, item)}
+                />
+                <span className="text-xs text-gray-400">{label}</span>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Handle inline content change
+  const handleContentChange = useCallback((componentId: string, key: string, value: any) => {
+    const updateComponent = (comps: CanvasComponent[]): CanvasComponent[] => {
+      return comps.map(c => {
+        if (c.id === componentId) {
+          return {
+            ...c,
+            content: { ...c.content, [key]: value }
+          }
+        }
+        if (c.children) {
+          return { ...c, children: updateComponent(c.children) }
+        }
+        return c
+      })
+    }
+    onComponentsChange(updateComponent(components))
+  }, [components, onComponentsChange])
+
+  // Render preview with container support
   const renderPreview = (component: CanvasComponent) => {
+    const isContainer = containerTypes.includes(component.type)
+
+    // Create content change handler for this component
+    const onContentChange = (key: string, value: any) => {
+      handleContentChange(component.id, key, value)
+    }
+
+    if (isContainer) {
+      const numSlots = containerSlots[component.type] || 1
+      const children = component.children || []
+
+      // Group children by slot index
+      const childrenBySlot: Record<number, CanvasComponent[]> = {}
+      for (let i = 0; i < numSlots; i++) {
+        childrenBySlot[i] = []
+      }
+      children.forEach(child => {
+        const slot = child.props?.slotIndex ?? 0
+        if (childrenBySlot[slot]) {
+          childrenBySlot[slot].push(child)
+        }
+      })
+
+      // Get all slots as array for AI context
+      const allSlots = Object.values(childrenBySlot)
+
+      // Render container with droppable slots
+      switch (component.type) {
+        case 'grid-2col':
+          return (
+            <div className="grid grid-cols-2 gap-6 p-6 bg-gray-50">
+              {renderDroppableSlot(component.id, 0, childrenBySlot[0], 'Column 1', 'grid-2col', undefined, allSlots)}
+              {renderDroppableSlot(component.id, 1, childrenBySlot[1], 'Column 2', 'grid-2col', undefined, allSlots)}
+            </div>
+          )
+        case 'grid-3col':
+          return (
+            <div className="grid grid-cols-3 gap-6 p-6 bg-gray-50">
+              {renderDroppableSlot(component.id, 0, childrenBySlot[0], 'Column 1', 'grid-3col', undefined, allSlots)}
+              {renderDroppableSlot(component.id, 1, childrenBySlot[1], 'Column 2', 'grid-3col', undefined, allSlots)}
+              {renderDroppableSlot(component.id, 2, childrenBySlot[2], 'Column 3', 'grid-3col', undefined, allSlots)}
+            </div>
+          )
+        case 'grid-4col':
+          return (
+            <div className="grid grid-cols-4 gap-6 p-6 bg-gray-50">
+              {[0, 1, 2, 3].map(i => renderDroppableSlot(component.id, i, childrenBySlot[i], `Col ${i + 1}`, 'grid-4col', undefined, allSlots))}
+            </div>
+          )
+        case 'grid-sidebar':
+          return (
+            <div className="grid grid-cols-4 gap-6 p-6 bg-gray-50">
+              {renderDroppableSlot(component.id, 0, childrenBySlot[0], 'Sidebar', 'grid-sidebar', undefined, allSlots)}
+              {renderDroppableSlot(component.id, 1, childrenBySlot[1], 'Main Content', 'grid-sidebar', 'col-span-3', allSlots)}
+            </div>
+          )
+        case 'section':
+        case 'container':
+          return (
+            <div className={`p-6 ${component.type === 'section' ? 'py-16 px-8' : ''} bg-gray-50`}>
+              {renderDroppableSlot(component.id, 0, childrenBySlot[0], 'Drop content here', component.type, 'min-h-[150px]', allSlots)}
+            </div>
+          )
+        case 'flexbox':
+        case 'flex-row':
+          return (
+            <div className="flex gap-4 p-6 bg-gray-50">
+              {[0, 1, 2].map(i => renderDroppableSlot(component.id, i, childrenBySlot[i] || [], `Flex ${i + 1}`, 'flexbox', 'flex-1', allSlots))}
+            </div>
+          )
+        case 'flex-col':
+          return (
+            <div className="flex flex-col gap-4 p-6 bg-gray-50">
+              {renderDroppableSlot(component.id, 0, childrenBySlot[0], 'Drop content here', 'flex-col', 'min-h-[150px]', allSlots)}
+            </div>
+          )
+        default:
+          break
+      }
+    }
+
+    // Non-container components use the static preview
     const Preview = componentPreviews[component.type] || componentPreviews['default']
-    return <Preview name={component.name} {...component.props} />
+    return <Preview name={component.name} content={component.content} onContentChange={onContentChange} {...component.props} />
   }
 
   const handleCanvasDragEnter = useCallback((e: React.DragEvent) => {
@@ -989,7 +1974,7 @@ export default function VisualCanvas({
   }, [dragOverIndex, components.length, handleDropAtEnd])
 
   const handleComponentDragStart = useCallback((e: React.DragEvent, componentId: string) => {
-    const component = components.find(c => c.id === componentId)
+    const component = findComponentById(components, componentId)
     if (component?.locked) {
       e.preventDefault()
       return

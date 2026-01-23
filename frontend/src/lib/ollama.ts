@@ -162,3 +162,133 @@ export async function getSemanticSuggestions(query: string): Promise<string[]> {
     return []
   }
 }
+
+// Context for slot-based predictions
+interface SlotPredictionContext {
+  parentType: string
+  parentName?: string
+  existingChildren: string[]
+  siblingComponents?: string[]
+  pageComponents?: string[]
+}
+
+// Get contextual predictions for what to add inside a container slot
+export async function getSlotPredictions(
+  context: SlotPredictionContext
+): Promise<ComponentPrediction[]> {
+  const { parentType, existingChildren, siblingComponents = [], pageComponents = [] } = context
+
+  const prompt = buildSlotPredictionPrompt(parentType, existingChildren, siblingComponents, pageComponents)
+
+  try {
+    const response = await fetch(`${OLLAMA_URL}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'qwen2.5-coder:7b',
+        prompt,
+        stream: false,
+        options: {
+          temperature: 0.3,
+          num_predict: 400,
+        },
+      }),
+      signal: AbortSignal.timeout(8000),
+    })
+
+    if (!response.ok) {
+      throw new Error('Ollama request failed')
+    }
+
+    const data = await response.json()
+    return parseSlotResponse(data.response)
+  } catch (error) {
+    console.warn('Ollama slot prediction failed:', error)
+    return []
+  }
+}
+
+function buildSlotPredictionPrompt(
+  parentType: string,
+  existingChildren: string[],
+  siblingComponents: string[],
+  pageComponents: string[]
+): string {
+  const childList = existingChildren.length > 0 ? existingChildren.join(', ') : 'empty'
+  const siblingList = siblingComponents.length > 0 ? siblingComponents.join(', ') : 'none'
+  const pageList = pageComponents.length > 0 ? pageComponents.join(', ') : 'empty page'
+
+  return `You are a web design assistant. A user is adding content inside a container component.
+
+Container type: ${parentType}
+Current children in this slot: ${childList}
+Sibling components (in other slots): ${siblingList}
+Other components on page: ${pageList}
+
+Available child components:
+- card-basic: Simple content card
+- card-image: Card with image header
+- text: Text/paragraph block
+- heading: Heading/title
+- image: Image element
+- button: Button element
+- avatar: User avatar
+- stats: Statistics display
+- team-member: Team member card
+- pricing-card: Pricing tier card
+- testimonial-card: Customer quote card
+- form-contact: Contact form
+- form-newsletter: Email signup
+- icon: Icon element
+- divider: Horizontal divider
+- list: Bullet/numbered list
+
+Based on the container type and context, suggest 4-6 components that would work well. Consider:
+1. What typically goes inside ${parentType} containers
+2. Visual balance with siblings
+3. Common UI patterns
+
+Respond ONLY with a JSON array:
+[{"id": "component-id", "confidence": 0.9, "reason": "brief reason"}]`
+}
+
+function parseSlotResponse(response: string): ComponentPrediction[] {
+  try {
+    const jsonMatch = response.match(/\[[\s\S]*\]/)
+    if (!jsonMatch) return []
+
+    const predictions = JSON.parse(jsonMatch[0])
+
+    const nameMap: Record<string, string> = {
+      'card-basic': 'Card',
+      'card-image': 'Image Card',
+      'text': 'Text Block',
+      'heading': 'Heading',
+      'image': 'Image',
+      'button': 'Button',
+      'avatar': 'Avatar',
+      'stats': 'Stats',
+      'team-member': 'Team Member',
+      'pricing-card': 'Pricing Card',
+      'testimonial-card': 'Testimonial',
+      'form-contact': 'Contact Form',
+      'form-newsletter': 'Newsletter',
+      'icon': 'Icon',
+      'divider': 'Divider',
+      'list': 'List',
+    }
+
+    return predictions
+      .filter((p: any) => p.id && nameMap[p.id])
+      .map((p: any) => ({
+        id: p.id,
+        name: nameMap[p.id] || p.id,
+        confidence: p.confidence || 0.5,
+        reason: p.reason || '',
+      }))
+      .slice(0, 6)
+  } catch (error) {
+    console.warn('Failed to parse slot response:', error)
+    return []
+  }
+}

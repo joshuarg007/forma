@@ -24,6 +24,59 @@ import FigmaImportModal from '@/components/FigmaImportModal'
 import TutorialModal from '@/components/TutorialModal'
 import PagesSidebar from '@/components/PagesSidebar'
 
+// Helper: Find component by ID in nested tree
+function findComponentById(
+  components: CanvasComponent[],
+  id: string
+): CanvasComponent | null {
+  for (const component of components) {
+    if (component.id === id) return component
+    if (component.children) {
+      const found = findComponentById(component.children, id)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+// Helper: Update component in nested tree
+function updateComponentInTree(
+  components: CanvasComponent[],
+  targetId: string,
+  updater: (component: CanvasComponent) => CanvasComponent
+): CanvasComponent[] {
+  return components.map(component => {
+    if (component.id === targetId) {
+      return updater(component)
+    }
+    if (component.children) {
+      return {
+        ...component,
+        children: updateComponentInTree(component.children, targetId, updater)
+      }
+    }
+    return component
+  })
+}
+
+// Helper: Remove component from nested tree
+function removeComponentFromTree(
+  components: CanvasComponent[],
+  id: string
+): CanvasComponent[] {
+  return components
+    .filter(component => component.id !== id)
+    .map(component => {
+      if (component.children) {
+        return {
+          ...component,
+          children: removeComponentFromTree(component.children, id)
+        }
+      }
+      return component
+    })
+}
+
 export default function BuilderPage() {
   const router = useRouter()
   const params = useParams()
@@ -40,6 +93,8 @@ export default function BuilderPage() {
   const [device, setDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
   const [zoom, setZoom] = useState(100)
   const [showRightPanel, setShowRightPanel] = useState(true)
+  const [rightPanelWidth, setRightPanelWidth] = useState(380)
+  const [isResizing, setIsResizing] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [aiPrompt, setAiPrompt] = useState('')
   const [aiStatus, setAiStatus] = useState<string>('')
@@ -56,7 +111,7 @@ export default function BuilderPage() {
   const [history, setHistory] = useState<CanvasComponent[][]>([])
   const [historyIndex, setHistoryIndex] = useState(-1)
 
-  const selectedComponent = canvasComponents.find(c => c.id === selectedComponentId)
+  const selectedComponent = selectedComponentId ? findComponentById(canvasComponents, selectedComponentId) : null
 
   const handleDragStart = (e: React.DragEvent, item: { id: string; name: string }) => {
     console.log('Drag started:', item)
@@ -118,36 +173,92 @@ export default function BuilderPage() {
     }
   }, [history, historyIndex])
 
-  // Update a single component
+  // Update a single component (supports nested components)
   const handleUpdateComponent = useCallback((updatedComponent: CanvasComponent) => {
-    const newComponents = canvasComponents.map(c =>
-      c.id === updatedComponent.id ? updatedComponent : c
-    )
-    handleComponentsChange(newComponents)
+    console.log('handleUpdateComponent called with:', updatedComponent)
+    console.log('Current canvasComponents:', canvasComponents)
+
+    // Check if it's a root component
+    const isRoot = canvasComponents.some(c => c.id === updatedComponent.id)
+    console.log('Is root component:', isRoot)
+
+    if (isRoot) {
+      const newComponents = canvasComponents.map(c =>
+        c.id === updatedComponent.id ? updatedComponent : c
+      )
+      console.log('Updating root, new components:', newComponents)
+      handleComponentsChange(newComponents)
+    } else {
+      // Update nested component
+      const newComponents = updateComponentInTree(
+        canvasComponents,
+        updatedComponent.id,
+        () => updatedComponent
+      )
+      console.log('Updating nested, new components:', newComponents)
+      handleComponentsChange(newComponents)
+    }
   }, [canvasComponents, handleComponentsChange])
 
-  // Delete a component
+  // Delete a component (supports nested components)
   const handleDeleteComponent = useCallback((id: string) => {
-    const newComponents = canvasComponents.filter(c => c.id !== id)
-    handleComponentsChange(newComponents)
+    // Check if it's a root component
+    const isRoot = canvasComponents.some(c => c.id === id)
+
+    if (isRoot) {
+      const newComponents = canvasComponents.filter(c => c.id !== id)
+      handleComponentsChange(newComponents)
+    } else {
+      // Remove from nested tree
+      const newComponents = removeComponentFromTree(canvasComponents, id)
+      handleComponentsChange(newComponents)
+    }
+
     if (selectedComponentId === id) setSelectedComponentId(null)
   }, [canvasComponents, handleComponentsChange, selectedComponentId])
 
-  // Duplicate a component
+  // Duplicate a component (supports nested components)
   const handleDuplicateComponent = useCallback((id: string) => {
-    const index = canvasComponents.findIndex(c => c.id === id)
-    if (index === -1) return
+    // Check if it's a root component
+    const rootIndex = canvasComponents.findIndex(c => c.id === id)
 
-    const component = canvasComponents[index]
-    const newComponent: CanvasComponent = {
-      ...component,
-      id: `${component.type}-${Date.now()}`
+    if (rootIndex !== -1) {
+      const component = canvasComponents[rootIndex]
+      const newComponent: CanvasComponent = {
+        ...component,
+        id: `${component.type}-${Date.now()}`,
+        children: component.children?.map(c => ({
+          ...c,
+          id: `${c.type}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+        }))
+      }
+      const newComponents = [...canvasComponents]
+      newComponents.splice(rootIndex + 1, 0, newComponent)
+      handleComponentsChange(newComponents)
+      setSelectedComponentId(newComponent.id)
+    } else {
+      // Handle nested component duplication
+      const found = findComponentById(canvasComponents, id)
+      if (!found || !found.parentId) return
+
+      const newComponent: CanvasComponent = {
+        ...found,
+        id: `${found.type}-${Date.now()}`
+      }
+
+      // Find parent and add duplicate after original
+      const newComponents = updateComponentInTree(canvasComponents, found.parentId, (parent) => {
+        const children = parent.children || []
+        const childIndex = children.findIndex(c => c.id === id)
+        if (childIndex === -1) return parent
+        const newChildren = [...children]
+        newChildren.splice(childIndex + 1, 0, newComponent)
+        return { ...parent, children: newChildren }
+      })
+
+      handleComponentsChange(newComponents)
+      setSelectedComponentId(newComponent.id)
     }
-
-    const newComponents = [...canvasComponents]
-    newComponents.splice(index + 1, 0, newComponent)
-    handleComponentsChange(newComponents)
-    setSelectedComponentId(newComponent.id)
   }, [canvasComponents, handleComponentsChange])
 
   const addLog = (message: string) => {
@@ -732,6 +843,33 @@ ${componentsHtml}
     return () => clearTimeout(timeoutId)
   }, [canvasComponents, currentPage?.id, currentProject?.id])
 
+  // Handle sidebar resize
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return
+      const newWidth = window.innerWidth - e.clientX
+      setRightPanelWidth(Math.max(300, Math.min(600, newWidth)))
+    }
+
+    const handleMouseUp = () => {
+      setIsResizing(false)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    if (isResizing) {
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isResizing])
+
   if (!user || !currentProject || !currentPage) {
     return (
       <div className="min-h-screen bg-forma-950 flex items-center justify-center">
@@ -959,7 +1097,11 @@ ${componentsHtml}
       {/* Main layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left sidebar - Pages */}
-        <PagesSidebar />
+        <PagesSidebar
+          canvasComponents={canvasComponents}
+          selectedComponentId={selectedComponentId}
+          onSelectComponent={setSelectedComponentId}
+        />
 
         {/* Component Library */}
         <div className="w-64 border-r border-white/10 flex flex-col flex-shrink-0 bg-forma-950">
@@ -1045,10 +1187,18 @@ ${componentsHtml}
           {showRightPanel && (
             <motion.div
               initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 320, opacity: 1 }}
+              animate={{ width: rightPanelWidth, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
-              className="border-l border-white/10 flex flex-col flex-shrink-0 bg-forma-950 overflow-hidden"
+              className="border-l border-white/10 flex flex-col flex-shrink-0 bg-forma-950 overflow-hidden relative"
             >
+              {/* Resize handle */}
+              <div
+                className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-forma-500 transition-colors z-50"
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  setIsResizing(true)
+                }}
+              />
               {/* AI Assistant */}
               <div className="p-4 border-b border-white/10">
                 <div className="flex items-center gap-2 text-white mb-3">
@@ -1113,33 +1263,6 @@ ${componentsHtml}
                 />
               </div>
 
-              {/* Page structure */}
-              <div className="border-t border-white/10 p-4">
-                <div className="flex items-center gap-2 text-white/60 mb-3">
-                  <FolderTree className="w-4 h-4" />
-                  <span className="text-sm font-medium">Page Structure</span>
-                  <span className="ml-auto text-xs text-white/40">{canvasComponents.length} items</span>
-                </div>
-                <div className="space-y-1 max-h-40 overflow-y-auto">
-                  {canvasComponents.map((comp, index) => (
-                    <button
-                      key={comp.id}
-                      onClick={() => setSelectedComponentId(comp.id)}
-                      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm transition ${
-                        selectedComponentId === comp.id
-                          ? 'bg-forma-500/20 text-forma-400'
-                          : 'text-white/60 hover:bg-white/5 hover:text-white'
-                      }`}
-                    >
-                      <span className="text-xs text-white/30">{index + 1}</span>
-                      <span className="truncate">{comp.name}</span>
-                    </button>
-                  ))}
-                  {canvasComponents.length === 0 && (
-                    <p className="text-xs text-white/30 text-center py-2">No components yet</p>
-                  )}
-                </div>
-              </div>
             </motion.div>
           )}
         </AnimatePresence>

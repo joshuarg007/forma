@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useProjectStore } from '@/stores/projectStore'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   FileText,
   Plus,
@@ -12,18 +13,40 @@ import {
   Edit2,
   GripVertical,
   ChevronRight,
+  ChevronDown,
   Globe,
   Layout,
   Component,
+  Layers,
+  FolderTree,
+  Box,
 } from 'lucide-react'
 import type { Page } from '@/types'
+
+// Import CanvasComponent type
+interface CanvasComponent {
+  id: string
+  type: string
+  name: string
+  children?: CanvasComponent[]
+  [key: string]: any
+}
 
 interface PagesSidebarProps {
   collapsed?: boolean
   onToggle?: () => void
+  canvasComponents?: CanvasComponent[]
+  selectedComponentId?: string | null
+  onSelectComponent?: (id: string | null) => void
 }
 
-export default function PagesSidebar({ collapsed = false, onToggle }: PagesSidebarProps) {
+export default function PagesSidebar({
+  collapsed = false,
+  onToggle,
+  canvasComponents = [],
+  selectedComponentId,
+  onSelectComponent
+}: PagesSidebarProps) {
   const {
     pages,
     currentPage,
@@ -38,6 +61,62 @@ export default function PagesSidebar({ collapsed = false, onToggle }: PagesSideb
   const [editingPage, setEditingPage] = useState<Page | null>(null)
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const [newPageData, setNewPageData] = useState({ name: '', slug: '' })
+  const [showStructure, setShowStructure] = useState(true)
+  const [expandedComponents, setExpandedComponents] = useState<Set<string>>(new Set())
+
+  // Toggle component tree expansion
+  const toggleExpanded = (id: string) => {
+    const newExpanded = new Set(expandedComponents)
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id)
+    } else {
+      newExpanded.add(id)
+    }
+    setExpandedComponents(newExpanded)
+  }
+
+  // Render component tree item recursively
+  const renderComponentItem = (component: CanvasComponent, depth: number = 0) => {
+    const hasChildren = component.children && component.children.length > 0
+    const isExpanded = expandedComponents.has(component.id)
+    const isSelected = selectedComponentId === component.id
+
+    return (
+      <div key={component.id}>
+        <button
+          onClick={() => onSelectComponent?.(component.id)}
+          className={`w-full flex items-center gap-1 px-2 py-1.5 rounded text-sm transition ${
+            isSelected
+              ? 'bg-cyan-500/20 text-cyan-400'
+              : 'text-gray-400 hover:bg-white/5 hover:text-white'
+          }`}
+          style={{ paddingLeft: `${8 + depth * 12}px` }}
+        >
+          {hasChildren ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleExpanded(component.id) }}
+              className="p-0.5 hover:bg-white/10 rounded"
+            >
+              {isExpanded ? (
+                <ChevronDown className="w-3 h-3" />
+              ) : (
+                <ChevronRight className="w-3 h-3" />
+              )}
+            </button>
+          ) : (
+            <span className="w-4" />
+          )}
+          <Box className="w-3 h-3 opacity-60" />
+          <span className="truncate flex-1 text-left">{component.name}</span>
+        </button>
+        {hasChildren && isExpanded && (
+          <div>
+            {component.children!.map(child => renderComponentItem(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   const handleCreatePage = async () => {
     if (!newPageData.name || !newPageData.slug) return
@@ -222,6 +301,47 @@ export default function PagesSidebar({ collapsed = false, onToggle }: PagesSideb
             )}
           </div>
         ))}
+      </div>
+
+      {/* Page Structure / Component Tree */}
+      <div className="border-t border-white/10">
+        <button
+          onClick={() => setShowStructure(!showStructure)}
+          className="w-full p-3 flex items-center justify-between hover:bg-white/5 transition"
+        >
+          <div className="flex items-center gap-2 text-sm font-medium text-white">
+            <FolderTree className="w-4 h-4 text-gray-400" />
+            <span>Page Structure</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">{canvasComponents.length}</span>
+            {showStructure ? (
+              <ChevronDown className="w-4 h-4 text-gray-400" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            )}
+          </div>
+        </button>
+        <AnimatePresence>
+          {showStructure && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="px-2 pb-3 max-h-60 overflow-y-auto">
+                {canvasComponents.length > 0 ? (
+                  <div className="space-y-0.5">
+                    {canvasComponents.map((comp, index) => renderComponentItem(comp))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-500 text-center py-4">No components yet</p>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Current Page Info */}

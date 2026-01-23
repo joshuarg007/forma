@@ -9,8 +9,120 @@ import {
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Bold, Italic, Underline, Grid, Maximize2, Minimize2,
   CornerUpLeft, Sun, Moon, Monitor, Tablet, Smartphone,
-  Play, Square, RefreshCw, Wand2
+  Play, Square, RefreshCw, Wand2, Blend, SlidersHorizontal,
+  Crosshair, MousePointer2, Focus, Contrast, CircleDot,
+  FileText, Link, Image, Plus, GripVertical
 } from 'lucide-react'
+
+// Component types that support buttons
+const componentsWithButtons = [
+  'hero-centered', 'hero-split', 'hero-video', 'section-cta',
+  'card-basic', 'card-image', 'form-contact', 'form-newsletter'
+]
+
+// Button style options
+const buttonStyles = [
+  { id: 'primary', label: 'Primary', className: 'bg-indigo-600 text-white' },
+  { id: 'secondary', label: 'Secondary', className: 'bg-white text-indigo-600 border border-indigo-600' },
+  { id: 'outline', label: 'Outline', className: 'border border-white/50 text-white' },
+  { id: 'ghost', label: 'Ghost', className: 'text-white hover:bg-white/10' },
+]
+
+// Content field definitions for each component type
+const componentContentFields: Record<string, Array<{
+  key: string
+  label: string
+  type: 'text' | 'textarea' | 'url' | 'image'
+  placeholder?: string
+}>> = {
+  'hero-centered': [
+    { key: 'title', label: 'Title', type: 'text', placeholder: 'Enter headline...' },
+    { key: 'subtitle', label: 'Subtitle', type: 'textarea', placeholder: 'Enter description...' },
+  ],
+  'hero-split': [
+    { key: 'title', label: 'Title', type: 'text', placeholder: 'Enter headline...' },
+    { key: 'subtitle', label: 'Subtitle', type: 'textarea', placeholder: 'Enter description...' },
+    { key: 'imageUrl', label: 'Image URL', type: 'image', placeholder: 'https://...' },
+  ],
+  'hero-video': [
+    { key: 'title', label: 'Title', type: 'text', placeholder: 'Enter headline...' },
+    { key: 'subtitle', label: 'Subtitle', type: 'textarea', placeholder: 'Enter description...' },
+    { key: 'videoUrl', label: 'Video URL', type: 'url', placeholder: 'https://youtube.com/...' },
+  ],
+  'navbar': [
+    { key: 'brand', label: 'Brand Name', type: 'text', placeholder: 'Company' },
+    { key: 'links', label: 'Nav Links (comma separated)', type: 'text', placeholder: 'Home, About, Contact' },
+  ],
+  'navbar-centered': [
+    { key: 'brand', label: 'Brand Name', type: 'text', placeholder: 'Company' },
+    { key: 'links', label: 'Nav Links (comma separated)', type: 'text', placeholder: 'Home, About, Contact' },
+  ],
+  'footer': [
+    { key: 'brand', label: 'Brand Name', type: 'text', placeholder: 'Company' },
+    { key: 'tagline', label: 'Tagline', type: 'text', placeholder: 'Building the future' },
+    { key: 'copyright', label: 'Copyright', type: 'text', placeholder: '© 2024 Company' },
+  ],
+  'card-basic': [
+    { key: 'title', label: 'Title', type: 'text', placeholder: 'Card Title' },
+    { key: 'description', label: 'Description', type: 'textarea', placeholder: 'Card description...' },
+  ],
+  'card-image': [
+    { key: 'title', label: 'Title', type: 'text', placeholder: 'Card Title' },
+    { key: 'description', label: 'Description', type: 'textarea', placeholder: 'Card description...' },
+    { key: 'imageUrl', label: 'Image URL', type: 'image', placeholder: 'https://...' },
+  ],
+  'section-cta': [
+    { key: 'title', label: 'Title', type: 'text', placeholder: 'Ready to get started?' },
+    { key: 'subtitle', label: 'Subtitle', type: 'text', placeholder: 'Join thousands today' },
+    { key: 'buttonText', label: 'Button Text', type: 'text', placeholder: 'Start Free Trial' },
+  ],
+  'section-features': [
+    { key: 'title', label: 'Section Title', type: 'text', placeholder: 'Features' },
+    { key: 'subtitle', label: 'Section Subtitle', type: 'textarea', placeholder: 'Everything you need...' },
+  ],
+  'section-pricing': [
+    { key: 'title', label: 'Section Title', type: 'text', placeholder: 'Pricing' },
+    { key: 'subtitle', label: 'Section Subtitle', type: 'text', placeholder: 'Choose your plan' },
+  ],
+  'section-testimonials': [
+    { key: 'title', label: 'Section Title', type: 'text', placeholder: 'What people say' },
+  ],
+  'section-faq': [
+    { key: 'title', label: 'Section Title', type: 'text', placeholder: 'FAQ' },
+  ],
+  'form-contact': [
+    { key: 'title', label: 'Form Title', type: 'text', placeholder: 'Contact Us' },
+    { key: 'buttonText', label: 'Submit Button', type: 'text', placeholder: 'Send Message' },
+  ],
+  'form-newsletter': [
+    { key: 'title', label: 'Title', type: 'text', placeholder: 'Subscribe' },
+    { key: 'placeholder', label: 'Input Placeholder', type: 'text', placeholder: 'Enter your email' },
+    { key: 'buttonText', label: 'Button Text', type: 'text', placeholder: 'Subscribe' },
+  ],
+  'button': [
+    { key: 'text', label: 'Button Text', type: 'text', placeholder: 'Click me' },
+    { key: 'link', label: 'Link URL', type: 'url', placeholder: 'https://...' },
+  ],
+  'text': [
+    { key: 'content', label: 'Text Content', type: 'textarea', placeholder: 'Enter text...' },
+  ],
+  'heading': [
+    { key: 'text', label: 'Heading Text', type: 'text', placeholder: 'Heading' },
+  ],
+  'image': [
+    { key: 'src', label: 'Image URL', type: 'image', placeholder: 'https://...' },
+    { key: 'alt', label: 'Alt Text', type: 'text', placeholder: 'Image description' },
+  ],
+  'video': [
+    { key: 'src', label: 'Video URL', type: 'url', placeholder: 'https://youtube.com/...' },
+  ],
+  'stats': [
+    { key: 'stat1Label', label: 'Stat 1 Label', type: 'text', placeholder: 'Users' },
+    { key: 'stat1Value', label: 'Stat 1 Value', type: 'text', placeholder: '10,000+' },
+    { key: 'stat2Label', label: 'Stat 2 Label', type: 'text', placeholder: 'Revenue' },
+    { key: 'stat2Value', label: 'Stat 2 Value', type: 'text', placeholder: '$1M+' },
+  ],
+}
 import {
   CanvasComponent,
   ComponentStyles,
@@ -36,7 +148,7 @@ interface PropertiesPanelProps {
 function Section({
   title,
   icon: Icon,
-  defaultOpen = true,
+  defaultOpen = false,
   children
 }: {
   title: string
@@ -315,10 +427,10 @@ function Select({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-forma-500 appearance-none cursor-pointer"
+        className="w-full bg-forma-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-forma-500 appearance-none cursor-pointer"
       >
         {options.map((opt) => (
-          <option key={opt.value} value={opt.value} className="bg-forma-900">
+          <option key={opt.value} value={opt.value} className="bg-forma-900 text-white">
             {opt.label}
           </option>
         ))}
@@ -364,10 +476,14 @@ export default function PropertiesPanel({
 }: PropertiesPanelProps) {
   const updateStyles = useCallback((updates: Partial<ComponentStyles>) => {
     if (!component) return
-    onUpdate({
+    console.log('updateStyles called with:', updates)
+    console.log('Current component:', component)
+    const updated = {
       ...component,
       styles: { ...component.styles, ...updates }
-    })
+    }
+    console.log('Calling onUpdate with:', updated)
+    onUpdate(updated)
   }, [component, onUpdate])
 
   const updateAnimation = useCallback((updates: Partial<AnimationConfig>) => {
@@ -377,6 +493,63 @@ export default function PropertiesPanel({
       animation: { ...component.animation, ...updates }
     })
   }, [component, onUpdate])
+
+  const updateContent = useCallback((key: string, value: string) => {
+    if (!component) return
+    console.log('updateContent called:', key, value)
+    onUpdate({
+      ...component,
+      content: { ...component.content, [key]: value }
+    })
+  }, [component, onUpdate])
+
+  // Get buttons array from content (with defaults)
+  const getButtons = useCallback((): Array<{ id: string; text: string; link: string; style: string }> => {
+    const buttons = (component?.content as any)?.buttons
+    if (!buttons || !Array.isArray(buttons)) {
+      // Return default buttons based on component type
+      if (component?.type === 'hero-centered') {
+        return [
+          { id: '1', text: 'Get Started', link: '', style: 'primary' },
+          { id: '2', text: 'Learn More', link: '', style: 'outline' },
+        ]
+      }
+      if (component?.type === 'hero-split' || component?.type === 'section-cta') {
+        return [{ id: '1', text: 'Get Started', link: '', style: 'primary' }]
+      }
+      return []
+    }
+    return buttons
+  }, [component])
+
+  const updateButtons = useCallback((buttons: Array<{ id: string; text: string; link: string; style: string }>) => {
+    if (!component) return
+    onUpdate({
+      ...component,
+      content: { ...component.content, buttons } as any
+    })
+  }, [component, onUpdate])
+
+  const addButton = useCallback(() => {
+    const buttons = getButtons()
+    const newButton = {
+      id: Date.now().toString(),
+      text: 'New Button',
+      link: '',
+      style: 'primary'
+    }
+    updateButtons([...buttons, newButton])
+  }, [getButtons, updateButtons])
+
+  const removeButton = useCallback((id: string) => {
+    const buttons = getButtons()
+    updateButtons(buttons.filter(b => b.id !== id))
+  }, [getButtons, updateButtons])
+
+  const updateButton = useCallback((id: string, field: string, value: string) => {
+    const buttons = getButtons()
+    updateButtons(buttons.map(b => b.id === id ? { ...b, [field]: value } : b))
+  }, [getButtons, updateButtons])
 
   if (!component) {
     return (
@@ -470,6 +643,109 @@ export default function PropertiesPanel({
           <span className="text-[10px]">AI Edit</span>
         </button>
       </div>
+
+      {/* Content Editing - Show first for easy access */}
+      {(componentContentFields[component.type] || componentsWithButtons.includes(component.type)) && (
+        <Section title="Content" icon={FileText}>
+          <div className="space-y-4">
+            {/* Text fields */}
+            {componentContentFields[component.type]?.map((field) => (
+              <div key={field.key} className="space-y-1">
+                <label className="text-xs text-white/60 flex items-center gap-1">
+                  {field.type === 'url' && <Link className="w-3 h-3" />}
+                  {field.type === 'image' && <Image className="w-3 h-3" />}
+                  {field.label}
+                </label>
+                {field.type === 'textarea' ? (
+                  <textarea
+                    value={(component.content?.[field.key] as string) || ''}
+                    onChange={(e) => updateContent(field.key, e.target.value)}
+                    placeholder={field.placeholder}
+                    rows={3}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/30 focus:outline-none focus:border-forma-500 resize-none"
+                  />
+                ) : (
+                  <input
+                    type={field.type === 'url' || field.type === 'image' ? 'url' : 'text'}
+                    value={(component.content?.[field.key] as string) || ''}
+                    onChange={(e) => updateContent(field.key, e.target.value)}
+                    placeholder={field.placeholder}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-white/30 focus:outline-none focus:border-forma-500"
+                  />
+                )}
+              </div>
+            ))}
+
+            {/* Buttons subsection */}
+            {componentsWithButtons.includes(component.type) && (
+              <div className="pt-3 border-t border-white/10">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-xs text-white/60 font-medium">Buttons</label>
+                  <button
+                    onClick={addButton}
+                    className="flex items-center gap-1 px-2 py-1 text-xs bg-forma-500/20 text-forma-400 rounded hover:bg-forma-500/30 transition"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {getButtons().map((btn, index) => (
+                    <div key={btn.id} className="bg-white/5 rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <GripVertical className="w-3 h-3 text-white/30" />
+                          <span className="text-xs text-white/60">Button {index + 1}</span>
+                        </div>
+                        <button
+                          onClick={() => removeButton(btn.id)}
+                          className="p-1 text-white/40 hover:text-red-400 transition"
+                          title="Remove button"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        value={btn.text}
+                        onChange={(e) => updateButton(btn.id, 'text', e.target.value)}
+                        placeholder="Button text"
+                        className="w-full bg-white/5 border border-white/10 rounded px-2 py-1.5 text-white text-xs placeholder-white/30 focus:outline-none focus:border-forma-500"
+                      />
+                      <input
+                        type="url"
+                        value={btn.link}
+                        onChange={(e) => updateButton(btn.id, 'link', e.target.value)}
+                        placeholder="https://..."
+                        className="w-full bg-white/5 border border-white/10 rounded px-2 py-1.5 text-white text-xs placeholder-white/30 focus:outline-none focus:border-forma-500"
+                      />
+                      <div className="flex gap-1">
+                        {buttonStyles.map((style) => (
+                          <button
+                            key={style.id}
+                            onClick={() => updateButton(btn.id, 'style', style.id)}
+                            className={`flex-1 py-1 text-[10px] rounded transition ${
+                              btn.style === style.id
+                                ? 'bg-forma-500 text-white'
+                                : 'bg-white/5 text-white/60 hover:bg-white/10'
+                            }`}
+                            title={style.label}
+                          >
+                            {style.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {getButtons().length === 0 && (
+                    <p className="text-xs text-white/30 text-center py-2">No buttons yet</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </Section>
+      )}
 
       {/* Style presets */}
       <Section title="Style Presets" icon={Sparkles}>
@@ -1056,6 +1332,7 @@ export default function PropertiesPanel({
       {/* Shadow */}
       <Section title="Shadow" icon={Sun} defaultOpen={false}>
         <div className="space-y-3">
+          <label className="text-xs text-white/60">Presets</label>
           <div className="flex gap-2">
             {[
               { label: 'None', shadow: [] },
@@ -1073,12 +1350,367 @@ export default function PropertiesPanel({
               </button>
             ))}
           </div>
+          {/* Custom shadow controls */}
+          <div className="space-y-2 pt-2 border-t border-white/10">
+            <label className="text-xs text-white/60">Custom Shadow</label>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-white/40">X Offset</label>
+                <input
+                  type="number"
+                  value={styles.boxShadow?.[0]?.x ?? 0}
+                  onChange={(e) => {
+                    const shadow = styles.boxShadow?.[0] || { x: 0, y: 4, blur: 10, spread: 0, color: 'rgba(0,0,0,0.15)' }
+                    updateStyles({ boxShadow: [{ ...shadow, x: parseInt(e.target.value) || 0 }] })
+                  }}
+                  className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-xs"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-white/40">Y Offset</label>
+                <input
+                  type="number"
+                  value={styles.boxShadow?.[0]?.y ?? 4}
+                  onChange={(e) => {
+                    const shadow = styles.boxShadow?.[0] || { x: 0, y: 4, blur: 10, spread: 0, color: 'rgba(0,0,0,0.15)' }
+                    updateStyles({ boxShadow: [{ ...shadow, y: parseInt(e.target.value) || 0 }] })
+                  }}
+                  className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-xs"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-white/40">Blur</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={styles.boxShadow?.[0]?.blur ?? 10}
+                  onChange={(e) => {
+                    const shadow = styles.boxShadow?.[0] || { x: 0, y: 4, blur: 10, spread: 0, color: 'rgba(0,0,0,0.15)' }
+                    updateStyles({ boxShadow: [{ ...shadow, blur: parseInt(e.target.value) || 0 }] })
+                  }}
+                  className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-xs"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-white/40">Spread</label>
+                <input
+                  type="number"
+                  value={styles.boxShadow?.[0]?.spread ?? 0}
+                  onChange={(e) => {
+                    const shadow = styles.boxShadow?.[0] || { x: 0, y: 4, blur: 10, spread: 0, color: 'rgba(0,0,0,0.15)' }
+                    updateStyles({ boxShadow: [{ ...shadow, spread: parseInt(e.target.value) || 0 }] })
+                  }}
+                  className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-xs"
+                />
+              </div>
+            </div>
+            <ColorPicker
+              label="Shadow Color"
+              value={styles.boxShadow?.[0]?.color}
+              onChange={(color) => {
+                const shadow = styles.boxShadow?.[0] || { x: 0, y: 4, blur: 10, spread: 0, color: 'rgba(0,0,0,0.15)' }
+                updateStyles({ boxShadow: [{ ...shadow, color }] })
+              }}
+            />
+            <label className="flex items-center gap-2 text-xs text-white/60 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={styles.boxShadow?.[0]?.inset ?? false}
+                onChange={(e) => {
+                  const shadow = styles.boxShadow?.[0] || { x: 0, y: 4, blur: 10, spread: 0, color: 'rgba(0,0,0,0.15)' }
+                  updateStyles({ boxShadow: [{ ...shadow, inset: e.target.checked }] })
+                }}
+                className="rounded bg-white/10 border-white/20"
+              />
+              Inset Shadow
+            </label>
+          </div>
+        </div>
+      </Section>
+
+      {/* Filters */}
+      <Section title="Filters" icon={SlidersHorizontal} defaultOpen={false}>
+        <div className="space-y-3">
+          <Slider
+            label="Blur"
+            value={styles.filter?.blur ?? 0}
+            onChange={(v) => updateStyles({ filter: { ...styles.filter, blur: v } })}
+            min={0}
+            max={20}
+            unit="px"
+          />
+          <Slider
+            label="Brightness"
+            value={styles.filter?.brightness ?? 100}
+            onChange={(v) => updateStyles({ filter: { ...styles.filter, brightness: v } })}
+            min={0}
+            max={200}
+            unit="%"
+          />
+          <Slider
+            label="Contrast"
+            value={styles.filter?.contrast ?? 100}
+            onChange={(v) => updateStyles({ filter: { ...styles.filter, contrast: v } })}
+            min={0}
+            max={200}
+            unit="%"
+          />
+          <Slider
+            label="Saturate"
+            value={styles.filter?.saturate ?? 100}
+            onChange={(v) => updateStyles({ filter: { ...styles.filter, saturate: v } })}
+            min={0}
+            max={200}
+            unit="%"
+          />
+          <Slider
+            label="Grayscale"
+            value={styles.filter?.grayscale ?? 0}
+            onChange={(v) => updateStyles({ filter: { ...styles.filter, grayscale: v } })}
+            min={0}
+            max={100}
+            unit="%"
+          />
+          <Slider
+            label="Sepia"
+            value={styles.filter?.sepia ?? 0}
+            onChange={(v) => updateStyles({ filter: { ...styles.filter, sepia: v } })}
+            min={0}
+            max={100}
+            unit="%"
+          />
+          <Slider
+            label="Hue Rotate"
+            value={styles.filter?.hueRotate ?? 0}
+            onChange={(v) => updateStyles({ filter: { ...styles.filter, hueRotate: v } })}
+            min={0}
+            max={360}
+            unit="°"
+          />
+          <Slider
+            label="Invert"
+            value={styles.filter?.invert ?? 0}
+            onChange={(v) => updateStyles({ filter: { ...styles.filter, invert: v } })}
+            min={0}
+            max={100}
+            unit="%"
+          />
+          <button
+            onClick={() => updateStyles({ filter: undefined })}
+            className="w-full py-2 text-xs bg-white/5 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition"
+          >
+            Reset Filters
+          </button>
+        </div>
+      </Section>
+
+      {/* Effects */}
+      <Section title="Effects" icon={Blend} defaultOpen={false}>
+        <div className="space-y-3">
+          <Slider
+            label="Opacity"
+            value={(styles.opacity ?? 1) * 100}
+            onChange={(v) => updateStyles({ opacity: v / 100 })}
+            min={0}
+            max={100}
+            unit="%"
+          />
+          <div className="space-y-2">
+            <label className="text-xs text-white/60">Blend Mode</label>
+            <select
+              value={styles.mixBlendMode || 'normal'}
+              onChange={(e) => updateStyles({ mixBlendMode: e.target.value as any })}
+              className="w-full bg-forma-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm [&>option]:bg-forma-900 [&>option]:text-white"
+            >
+              <option value="normal">Normal</option>
+              <option value="multiply">Multiply</option>
+              <option value="screen">Screen</option>
+              <option value="overlay">Overlay</option>
+              <option value="darken">Darken</option>
+              <option value="lighten">Lighten</option>
+              <option value="color-dodge">Color Dodge</option>
+              <option value="color-burn">Color Burn</option>
+              <option value="hard-light">Hard Light</option>
+              <option value="soft-light">Soft Light</option>
+              <option value="difference">Difference</option>
+              <option value="exclusion">Exclusion</option>
+              <option value="hue">Hue</option>
+              <option value="saturation">Saturation</option>
+              <option value="color">Color</option>
+              <option value="luminosity">Luminosity</option>
+            </select>
+          </div>
+          <div className="pt-2 border-t border-white/10 space-y-3">
+            <label className="text-xs text-white/60">Backdrop Blur (Glass Effect)</label>
+            <Slider
+              label="Backdrop Blur"
+              value={styles.backdropFilter?.blur ?? 0}
+              onChange={(v) => updateStyles({ backdropFilter: { ...styles.backdropFilter, blur: v } })}
+              min={0}
+              max={30}
+              unit="px"
+            />
+            <Slider
+              label="Backdrop Brightness"
+              value={styles.backdropFilter?.brightness ?? 100}
+              onChange={(v) => updateStyles({ backdropFilter: { ...styles.backdropFilter, brightness: v } })}
+              min={0}
+              max={200}
+              unit="%"
+            />
+          </div>
+        </div>
+      </Section>
+
+      {/* Position */}
+      <Section title="Position" icon={Crosshair} defaultOpen={false}>
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <label className="text-xs text-white/60">Position Type</label>
+            <div className="grid grid-cols-4 gap-1">
+              {(['relative', 'absolute', 'fixed', 'sticky'] as const).map((pos) => (
+                <button
+                  key={pos}
+                  onClick={() => updateStyles({ position: pos })}
+                  className={`py-2 text-[10px] rounded-lg transition ${
+                    styles.position === pos
+                      ? 'bg-forma-500 text-white'
+                      : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  {pos.charAt(0).toUpperCase() + pos.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+          {(styles.position === 'absolute' || styles.position === 'fixed' || styles.position === 'sticky') && (
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] text-white/40">Top</label>
+                <input
+                  type="text"
+                  value={styles.top || ''}
+                  onChange={(e) => updateStyles({ top: e.target.value || undefined })}
+                  placeholder="auto"
+                  className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-xs"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-white/40">Right</label>
+                <input
+                  type="text"
+                  value={styles.right || ''}
+                  onChange={(e) => updateStyles({ right: e.target.value || undefined })}
+                  placeholder="auto"
+                  className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-xs"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-white/40">Bottom</label>
+                <input
+                  type="text"
+                  value={styles.bottom || ''}
+                  onChange={(e) => updateStyles({ bottom: e.target.value || undefined })}
+                  placeholder="auto"
+                  className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-xs"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-white/40">Left</label>
+                <input
+                  type="text"
+                  value={styles.left || ''}
+                  onChange={(e) => updateStyles({ left: e.target.value || undefined })}
+                  placeholder="auto"
+                  className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-xs"
+                />
+              </div>
+            </div>
+          )}
+          <div>
+            <label className="text-[10px] text-white/40">Z-Index</label>
+            <input
+              type="number"
+              value={styles.zIndex ?? ''}
+              onChange={(e) => updateStyles({ zIndex: e.target.value ? parseInt(e.target.value) : undefined })}
+              placeholder="auto"
+              className="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-xs"
+            />
+          </div>
+        </div>
+      </Section>
+
+      {/* Overflow & Cursor */}
+      <Section title="Overflow & Cursor" icon={MousePointer2} defaultOpen={false}>
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <label className="text-xs text-white/60">Overflow</label>
+            <div className="grid grid-cols-4 gap-1">
+              {(['visible', 'hidden', 'scroll', 'auto'] as const).map((overflow) => (
+                <button
+                  key={overflow}
+                  onClick={() => updateStyles({ overflow })}
+                  className={`py-2 text-[10px] rounded-lg transition ${
+                    styles.overflow === overflow
+                      ? 'bg-forma-500 text-white'
+                      : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  {overflow.charAt(0).toUpperCase() + overflow.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs text-white/60">Cursor</label>
+            <select
+              value={styles.cursor || 'auto'}
+              onChange={(e) => updateStyles({ cursor: e.target.value as any })}
+              className="w-full bg-forma-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm [&>option]:bg-forma-900 [&>option]:text-white"
+            >
+              <option value="auto">Auto</option>
+              <option value="default">Default</option>
+              <option value="pointer">Pointer</option>
+              <option value="wait">Wait</option>
+              <option value="text">Text</option>
+              <option value="move">Move</option>
+              <option value="not-allowed">Not Allowed</option>
+              <option value="grab">Grab</option>
+              <option value="grabbing">Grabbing</option>
+              <option value="zoom-in">Zoom In</option>
+              <option value="zoom-out">Zoom Out</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs text-white/60">Visibility</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => updateStyles({ visibility: 'visible' })}
+                className={`py-2 text-xs rounded-lg transition ${
+                  styles.visibility !== 'hidden'
+                    ? 'bg-forma-500 text-white'
+                    : 'bg-white/5 text-white/60 hover:bg-white/10'
+                }`}
+              >
+                Visible
+              </button>
+              <button
+                onClick={() => updateStyles({ visibility: 'hidden' })}
+                className={`py-2 text-xs rounded-lg transition ${
+                  styles.visibility === 'hidden'
+                    ? 'bg-forma-500 text-white'
+                    : 'bg-white/5 text-white/60 hover:bg-white/10'
+                }`}
+              >
+                Hidden
+              </button>
+            </div>
+          </div>
         </div>
       </Section>
 
       {/* Advanced Features */}
-      <div className="p-4 border-b border-white/10">
-        <h3 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-3">Advanced</h3>
+      <Section title="Advanced" icon={Layers} defaultOpen={false}>
         <div className="space-y-3">
           <Transform3DPanel
             component={component}
@@ -1093,7 +1725,7 @@ export default function PropertiesPanel({
             onUpdate={onUpdate}
           />
         </div>
-      </div>
+      </Section>
     </div>
   )
 }

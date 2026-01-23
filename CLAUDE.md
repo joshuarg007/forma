@@ -23,10 +23,13 @@
 ---
 
 ## SESSION STATE (Update before ending each session)
-**Last Updated:** 2026-01-21
+**Last Updated:** 2026-01-22
 
 ### Where We Left Off:
 - **COMPLETED**: Phase B, C, D (Templates, Infrastructure, Theme System)
+- **COMPLETED**: Component AI System (TensorFlow.js + Collaborative Filtering)
+- **COMPLETED**: Nested component support (drop into grid columns/sections)
+- **COMPLETED**: Smart + buttons with AI-powered suggestions
 - **TOTAL**: 57 components (54 modules + 3 templates) + 11 theme presets
 - Full theme system with contrast checker and breakpoints
 
@@ -85,6 +88,9 @@ The existing codebase is a working visual page builder. It will become the `form
 
 **Current capabilities:**
 - Visual drag-drop canvas with 100+ components
+- **Nested components** - Drop items into grid columns, sections, flexbox
+- **Smart + buttons** - AI-powered contextual suggestions in empty slots
+- **Component AI** - TensorFlow.js model that learns from your choices
 - Multi-page projects
 - AI component generation (Claude API)
 - Team collaboration
@@ -164,6 +170,34 @@ Forma is a visual page builder similar to Elementor/Webflow. Users can drag-and-
 | File | Description |
 |------|-------------|
 | `lib/api.ts` | Full API client with auth, projects, pages, components, AI, etc. |
+
+#### Component AI (`lib/componentAI/`)
+TensorFlow.js-based recommendation system that suggests components based on context.
+
+| File | Description |
+|------|-------------|
+| `types.ts` | 60+ component types, interfaces, lookup maps |
+| `registry.ts` | Component metadata, UI patterns, page flow patterns, sibling patterns |
+| `model.ts` | Two-tower neural network architecture (TF.js) |
+| `training.ts` | Synthetic training data generation from UI patterns |
+| `inference.ts` | Predictions, personalization, user learning |
+| `index.ts` | Main exports |
+
+**Architecture:**
+- Input: Context (parent type, existing children, siblings, page components)
+- Model: 4 embedding layers → concat → hidden(32) → dropout → softmax
+- Output: Probability distribution over ~60 component types
+- Size: ~200KB, runs entirely in browser
+
+**How it works:**
+1. Pre-trains on synthetic data from UI patterns on first load
+2. When user clicks + button, model predicts best components (~10ms)
+3. Blends: 60% neural network + 25% rule-based + 15% user history
+4. Records every selection for personalization
+5. Fine-tunes model on each interaction
+6. Saves model and history to localStorage
+
+**No external dependencies** - works offline, no API calls.
 
 ---
 
