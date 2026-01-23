@@ -1668,18 +1668,28 @@ export default function PropertiesPanel({
               onChange={(e) => updateStyles({ cursor: e.target.value as any })}
               className="w-full bg-forma-900 border border-white/10 rounded-lg px-3 py-2 text-white text-sm [&>option]:bg-forma-900 [&>option]:text-white"
             >
-              <option value="auto">Auto</option>
-              <option value="default">Default</option>
-              <option value="pointer">Pointer</option>
-              <option value="wait">Wait</option>
-              <option value="text">Text</option>
-              <option value="move">Move</option>
-              <option value="not-allowed">Not Allowed</option>
-              <option value="grab">Grab</option>
-              <option value="grabbing">Grabbing</option>
-              <option value="zoom-in">Zoom In</option>
-              <option value="zoom-out">Zoom Out</option>
+              <optgroup label="Standard">
+                <option value="auto">Auto</option>
+                <option value="default">Default</option>
+                <option value="pointer">Pointer</option>
+                <option value="wait">Wait</option>
+                <option value="text">Text</option>
+                <option value="move">Move</option>
+                <option value="not-allowed">Not Allowed</option>
+                <option value="grab">Grab</option>
+                <option value="grabbing">Grabbing</option>
+                <option value="zoom-in">Zoom In</option>
+                <option value="zoom-out">Zoom Out</option>
+              </optgroup>
+              <optgroup label="Custom Effects">
+                <option value="rgb-glow">✨ RGB Glow</option>
+              </optgroup>
             </select>
+            {styles.cursor === 'rgb-glow' && (
+              <p className="text-xs text-forma-400 mt-1">
+                Animated cursor with color-cycling glow effect
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <label className="text-xs text-white/60">Visibility</label>

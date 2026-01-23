@@ -12,6 +12,7 @@ import {
 import { useAuthStore } from '@/stores/authStore'
 import { useProjectStore } from '@/stores/projectStore'
 import AdminLayout from '@/components/AdminLayout'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -21,6 +22,11 @@ export default function DashboardPage() {
   const [showNewProject, setShowNewProject] = useState(false)
   const [newProjectName, setNewProjectName] = useState('')
   const [creating, setCreating] = useState(false)
+
+  // Delete confirmation state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [projectToDelete, setProjectToDelete] = useState<{ id: string; name: string } | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     checkAuth()
@@ -52,6 +58,21 @@ export default function DashboardPage() {
       console.error('Failed to create project:', error)
     } finally {
       setCreating(false)
+    }
+  }
+
+  const handleDeleteProject = async () => {
+    if (!projectToDelete) return
+
+    setIsDeleting(true)
+    try {
+      await deleteProject(projectToDelete.id)
+      setDeleteDialogOpen(false)
+      setProjectToDelete(null)
+    } catch (error) {
+      console.error('Failed to delete project:', error)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -205,7 +226,7 @@ export default function DashboardPage() {
               <div className="text-center py-12 px-6">
                 <div className="relative w-48 h-36 mx-auto mb-4">
                   <Image
-                    src="/empty-states/empty-no-projects.png"
+                    src="/empty-states/empty-no-projects.webp"
                     alt="FORMA AI-Powered React App Builder - No Projects"
                     fill
                     className="object-contain"
@@ -230,25 +251,25 @@ export default function DashboardPage() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.05 }}
                     onClick={() => router.push(`/builder/${project.id}`)}
-                    className="group flex items-center justify-between p-4 hover:bg-white/5 transition cursor-pointer"
+                    className="group flex items-center justify-between gap-3 p-3 sm:p-4 hover:bg-white/5 transition cursor-pointer"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-forma-500/20 to-purple-500/20 flex items-center justify-center border border-white/10">
-                        <FolderOpen className="w-6 h-6 text-forma-400" />
+                    <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-forma-500/20 to-purple-500/20 flex items-center justify-center border border-white/10 flex-shrink-0">
+                        <FolderOpen className="w-5 h-5 sm:w-6 sm:h-6 text-forma-400" />
                       </div>
-                      <div>
-                        <h3 className="font-medium text-white group-hover:text-forma-400 transition">{project.name}</h3>
-                        <p className="text-sm text-white/40">{project.description || 'No description'}</p>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-medium text-white group-hover:text-forma-400 transition truncate">{project.name}</h3>
+                        <p className="text-sm text-white/40 truncate">{project.description || 'No description'}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
                       <div className="text-right hidden sm:block">
                         <p className="text-xs text-white/40">Last updated</p>
                         <p className="text-sm text-white/60">
                           {new Date(project.updated_at).toLocaleDateString()}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 sm:gap-2">
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
@@ -259,15 +280,14 @@ export default function DashboardPage() {
                           <Play className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={async (e) => {
+                          onClick={(e) => {
                             e.stopPropagation()
-                            if (confirm('Delete this project?')) {
-                              await deleteProject(project.id)
-                            }
+                            setProjectToDelete({ id: project.id, name: project.name })
+                            setDeleteDialogOpen(true)
                           }}
-                          className="p-3 rounded-lg border-2 border-dashed border-red-400/50 hover:border-red-400 hover:bg-red-500/20 text-red-400/60 hover:text-red-400 transition"
+                          className="p-2 sm:p-3 rounded-lg border-2 border-dashed border-red-400/50 hover:border-red-400 hover:bg-red-500/20 text-red-400/60 hover:text-red-400 transition"
                         >
-                          <Trash2 className="w-5 h-5" />
+                          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
                       </div>
                     </div>
@@ -409,6 +429,22 @@ export default function DashboardPage() {
           </motion.div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false)
+          setProjectToDelete(null)
+        }}
+        onConfirm={handleDeleteProject}
+        title="Delete Project"
+        description={`Are you sure you want to delete "${projectToDelete?.name}"? This action cannot be undone and all pages, components, and settings will be permanently removed.`}
+        confirmText="Delete Project"
+        cancelText="Keep Project"
+        variant="danger"
+        isLoading={isDeleting}
+      />
     </AdminLayout>
   )
 }

@@ -1,17 +1,23 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import {
   ChevronDown, Star, User, Users, Mail, Lock, ShoppingCart,
   Menu, X, Check, ArrowRight, Play, Quote, Home
 } from 'lucide-react'
+import CustomCursor from '@/components/ui/CustomCursor'
 
 interface CanvasComponent {
   id: string
   type: string
   name: string
   props: Record<string, any>
+  styles?: {
+    cursor?: string
+    [key: string]: any
+  }
+  children?: CanvasComponent[]
 }
 
 interface Page {
@@ -366,8 +372,8 @@ const componentRenderers: Record<string, (props: any) => JSX.Element> = {
   ),
 
   'sidebar': () => (
-    <div className="flex min-h-screen">
-      <aside className="w-64 bg-gray-900 text-white flex flex-col">
+    <div className="flex flex-col md:flex-row min-h-screen">
+      <aside className="w-full md:w-64 bg-gray-900 text-white flex flex-col">
         <div className="p-4 border-b border-gray-800">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center font-bold text-sm">A</div>
@@ -414,8 +420,8 @@ const componentRenderers: Record<string, (props: any) => JSX.Element> = {
   ),
 
   'sidebar-minimal': () => (
-    <div className="flex min-h-screen">
-      <aside className="w-16 bg-gray-900 text-white flex flex-col items-center py-4">
+    <div className="flex flex-col md:flex-row min-h-screen">
+      <aside className="w-full md:w-16 bg-gray-900 text-white flex flex-row md:flex-col items-center py-4 justify-around md:justify-start">
         <div className="w-10 h-10 bg-indigo-500 rounded-lg flex items-center justify-center font-bold text-sm mb-6">A</div>
         <nav className="flex-1 flex flex-col gap-2">
           <a href="#" className="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center">
@@ -606,6 +612,18 @@ export default function PreviewPage() {
     return <Renderer key={component.id} name={component.name} {...component.props} />
   }
 
+  // Check if any component uses rgb-glow cursor
+  const hasRgbGlowCursor = useMemo(() => {
+    const checkComponents = (components: CanvasComponent[]): boolean => {
+      for (const c of components) {
+        if (c.styles?.cursor === 'rgb-glow') return true
+        if (c.children && checkComponents(c.children)) return true
+      }
+      return false
+    }
+    return currentPage ? checkComponents(currentPage.canvas_components) : false
+  }, [currentPage])
+
   // Get nav pages (pages that should show in navigation)
   const navPages = pages.filter(p => p.show_in_nav !== false)
 
@@ -636,6 +654,9 @@ export default function PreviewPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* RGB Glow Cursor Effect */}
+      {hasRgbGlowCursor && <CustomCursor />}
+
       {/* Multi-page Navigation Bar (if more than 1 page) */}
       {pages.length > 1 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">

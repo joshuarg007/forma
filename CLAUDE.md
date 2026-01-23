@@ -23,15 +23,22 @@
 ---
 
 ## SESSION STATE (Update before ending each session)
-**Last Updated:** 2026-01-22
+**Last Updated:** 2026-01-23
 
 ### Where We Left Off:
 - **COMPLETED**: Phase B, C, D (Templates, Infrastructure, Theme System)
 - **COMPLETED**: Component AI System (TensorFlow.js + Collaborative Filtering)
 - **COMPLETED**: Nested component support (drop into grid columns/sections)
 - **COMPLETED**: Smart + buttons with AI-powered suggestions
+- **COMPLETED**: Removed Claude/Anthropic AI - all AI is now local TensorFlow.js
+- **COMPLETED**: QuickAddMenu wired to TF.js model
+- **COMPLETED**: Chat-based "What should I add next?" feature with TF.js
+- **COMPLETED**: RGB Glow cursor option in Properties Panel
+- **COMPLETED**: Full responsive design across all pages (mobile/tablet/desktop)
+- **COMPLETED**: Mobile hamburger navigation menu
 - **TOTAL**: 57 components (54 modules + 3 templates) + 11 theme presets
 - Full theme system with contrast checker and breakpoints
+- **NO EXTERNAL API DEPENDENCIES** - All AI runs locally in browser
 
 ### Current Running Services:
 | Service | Port | Location |
@@ -72,6 +79,19 @@
 | Phase D | Theme System | ✅ COMPLETE |
 | Phase A | Tier 4 Specialized Modules | NEXT |
 
+### Recent Additions (Session 2026-01-23):
+1. **RGB Glow Cursor** - Custom cursor option in Properties Panel (Overflow & Cursor tab)
+   - Animated color-cycling cursor with glow effect
+   - Uses Canvas API with HSL to RGB conversion
+   - Random starting color for variety
+   - Works in preview mode when any component uses `rgb-glow` cursor
+2. **Full Responsive Design** - All pages now mobile/tablet/desktop responsive
+   - Landing page: Grid responsive with mobile-friendly demo section
+   - Marketing Nav: Full hamburger menu with slide-down mobile menu
+   - Pricing page: Scrollable feature comparison table, responsive plan grid
+   - Dashboard: Truncation and proper spacing on mobile
+   - Preview page: Sidebar components stack on mobile
+
 ### Next Steps:
 1. **Phase A**: Tier 4 Specialized Modules - Blog, Portfolio, Dashboard
 2. Google Fonts integration
@@ -90,12 +110,20 @@ The existing codebase is a working visual page builder. It will become the `form
 - Visual drag-drop canvas with 100+ components
 - **Nested components** - Drop items into grid columns, sections, flexbox
 - **Smart + buttons** - AI-powered contextual suggestions in empty slots
-- **Component AI** - TensorFlow.js model that learns from your choices
+- **Component AI** - TensorFlow.js model that learns from your choices (100% local, no API)
+- **Chat suggestions** - "What should I add next?" powered by TF.js
+- **QuickAddMenu** - AI-powered component search with TF.js predictions
 - Multi-page projects
-- AI component generation (Claude API)
 - Team collaboration
 - Marketplace
 - Export to Next.js/Vite
+
+**AI Architecture (Local TensorFlow.js):**
+- No external API calls - everything runs in the browser
+- Two-tower neural network with 4 embedding layers
+- Learns from user interactions (personalization)
+- Pre-trained on synthetic UI pattern data
+- ~200KB model, ~10ms inference time
 
 **What needs to be added:**
 - Data model designer UI
@@ -210,7 +238,7 @@ TensorFlow.js-based recommendation system that suggests components based on cont
 | `projects.py` | `/api/projects/*` | CRUD projects, auto-creates home page |
 | `pages.py` | `/api/projects/{id}/pages/*` | CRUD pages, duplicate, reorder, by-slug |
 | `components.py` | `/api/projects/{id}/components/*` | CRUD AI-generated components |
-| `ai.py` | `/api/ai/*` | Generate, edit, explain components via Claude |
+| `ai.py` | `/api/ai/*` | DISABLED - Returns stub responses (AI is local TF.js now) |
 | `teams.py` | `/api/projects/{id}/team/*` | Invite members, manage roles, accept invites |
 | `marketplace.py` | `/api/marketplace/*` | Browse, publish, purchase components |
 | `templates.py` | `/api/templates/*` | Pre-built page/component templates |
@@ -239,7 +267,7 @@ TensorFlow.js-based recommendation system that suggests components based on cont
 #### Services (`app/services/`)
 | File | Description |
 |------|-------------|
-| `forma_ai.py` | Claude API integration for component generation |
+| `forma_ai.py` | DISABLED stub - AI is now local TF.js in frontend |
 | `export.py` | Export projects to Next.js/Vite zip files |
 | `github_sync.py` | GitHub API integration for repo sync |
 | `email.py` | Email sending (invites, notifications) |
@@ -276,11 +304,14 @@ TensorFlow.js-based recommendation system that suggests components based on cont
 14. **3D Transforms** - RotateX/Y/Z, translate, scale, perspective
 15. **Theme System** - Design tokens, color palettes
 16. **Style Presets** - Pre-built style combinations
+17. **Custom Cursors** - RGB Glow animated cursor option in Overflow & Cursor section
 
-### AI Features
-17. **AI Component Generation** - Describe in natural language, get React code
-18. **AI Component Editing** - Modify existing components via prompts
-19. **Intent History** - Version control by natural language
+### AI Features (100% Local - TensorFlow.js)
+17. **Smart + Buttons** - AI-powered suggestions in empty container slots
+18. **QuickAddMenu** - AI-powered component search with TF.js predictions
+19. **Chat Suggestions** - "What should I add next?" feature
+20. **Personalization** - Model learns from your choices over time
+21. **No External API** - All AI runs locally in browser, works offline
 
 ### Collaboration
 20. **Team Invites** - Invite by email with role selection
@@ -396,7 +427,7 @@ cd ~/forma/frontend && npm run build  # Type checking
 ```
 DATABASE_URL=sqlite:///./forma.db
 SECRET_KEY=your-secret-key
-ANTHROPIC_API_KEY=sk-ant-...
+# ANTHROPIC_API_KEY is NOT required - AI is local TensorFlow.js
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 GITHUB_CLIENT_ID=...

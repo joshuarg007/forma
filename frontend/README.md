@@ -11,6 +11,22 @@ Visual page builder with 54 pre-built modules for creating React websites.
 - **Animation**: Framer Motion
 - **Drag & Drop**: dnd-kit
 
+## Features
+
+### Responsive Design
+All pages are fully responsive for mobile, tablet, and desktop:
+- Mobile hamburger navigation with slide-down menu
+- Horizontally scrollable tables on mobile
+- Responsive grid layouts with breakpoint-aware columns
+- Proper text truncation and spacing
+
+### Custom Cursors
+The Properties Panel includes custom cursor effects:
+- **RGB Glow** - Animated color-cycling cursor with glow effect
+  - Uses Canvas API with HSL to RGB conversion
+  - Random starting color for variety
+  - Works in preview mode when applied to any component
+
 ## Quick Start
 
 ```bash
@@ -241,27 +257,27 @@ MyComponent.config = {
 
 ## Roadmap
 
-### Phase B: Page Templates (Next)
+### ✅ Phase B: Page Templates (COMPLETE)
 Pre-built page layouts using existing modules:
-- Landing page templates
-- SaaS templates
-- Portfolio templates
-- Blog templates
-- E-commerce templates
+- SaaSLanding - Full SaaS landing page
+- Portfolio - Developer portfolio template
+- BlogHome - Blog homepage with featured post
 
-### Phase C: Builder Infrastructure
+### ✅ Phase C: Builder Infrastructure (COMPLETE)
 - Drag-and-drop system
 - Module configuration panels
 - Live preview
 - Export/import JSON
+- Full responsive design
 
-### Phase D: Theme System
-- Color scheme presets
+### ✅ Phase D: Theme System (COMPLETE)
+- 11 color scheme presets
 - Typography scales
 - Spacing/sizing tokens
 - Dark mode support
+- WCAG contrast checker
 
-### Phase A: Tier 4 Specialized Modules
+### Phase A: Tier 4 Specialized Modules (Next)
 - Blog: BlogList, BlogPost, AuthorBio, RelatedPosts
 - Portfolio: PortfolioGrid, CaseStudy, ProjectCard
 - Dashboard: DashboardCard, ChartWidget, MetricCard
