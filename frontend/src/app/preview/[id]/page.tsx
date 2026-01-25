@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 import {
   ChevronDown, Star, User, Users, Mail, Lock, ShoppingCart,
-  Menu, X, Check, ArrowRight, Play, Quote, Home
+  Menu, X, Check, ArrowRight, Play, Quote, Home, Loader2, AlertCircle, Database
 } from 'lucide-react'
 import CustomCursor from '@/components/ui/CustomCursor'
+import { useDataBinding, mapDataToProps, DataBindingConfig } from '@/hooks/useDataBinding'
 
 interface CanvasComponent {
   id: string
@@ -18,6 +19,7 @@ interface CanvasComponent {
     [key: string]: any
   }
   children?: CanvasComponent[]
+  dataBinding?: DataBindingConfig
 }
 
 interface Page {
@@ -33,6 +35,7 @@ interface Page {
 interface PreviewData {
   pages: Page[]
   currentPageSlug: string
+  runtimeUrl?: string // Runtime API URL for data binding
 }
 
 // Full-page component renderers (more detailed than canvas previews)
@@ -544,6 +547,183 @@ const componentRenderers: Record<string, (props: any) => JSX.Element> = {
       </div>
     </div>
   ),
+
+  // Data-bound components - render fetched data in tables/lists
+  'data-table': (props: { data?: any[]; columns?: string[]; title?: string }) => {
+    const { data = [], columns = [], title } = props
+    const displayColumns = columns.length > 0 ? columns : (data[0] ? Object.keys(data[0]).slice(0, 5) : [])
+
+    return (
+      <section className="py-12 px-6 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          {title && <h2 className="text-2xl font-bold text-gray-900 mb-6">{title}</h2>}
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  {displayColumns.map((col) => (
+                    <th key={col} className="px-6 py-4 text-left text-sm font-semibold text-gray-900 capitalize">
+                      {col.replace(/_/g, ' ')}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {data.slice(0, 10).map((row, i) => (
+                  <tr key={i} className="hover:bg-gray-50 transition">
+                    {displayColumns.map((col) => (
+                      <td key={col} className="px-6 py-4 text-sm text-gray-600">
+                        {typeof row[col] === 'object' ? JSON.stringify(row[col]) : String(row[col] ?? '')}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {data.length === 0 && (
+              <div className="px-6 py-12 text-center text-gray-500">No data available</div>
+            )}
+          </div>
+        </div>
+      </section>
+    )
+  },
+
+  'data-cards': (props: { data?: any[]; titleField?: string; descField?: string; imageField?: string }) => {
+    const { data = [], titleField = 'title', descField = 'description', imageField = 'image' } = props
+
+    return (
+      <section className="py-12 px-6 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {data.slice(0, 9).map((item, i) => (
+              <div key={i} className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition">
+                {item[imageField] && (
+                  <div className="h-48 bg-gradient-to-br from-indigo-400 to-purple-500" />
+                )}
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    {item[titleField] || `Item ${i + 1}`}
+                  </h3>
+                  {item[descField] && (
+                    <p className="text-gray-600 text-sm line-clamp-3">{item[descField]}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          {data.length === 0 && (
+            <div className="text-center py-12 text-gray-500">No data available</div>
+          )}
+        </div>
+      </section>
+    )
+  },
+
+  'data-list': (props: { data?: any[]; titleField?: string; subtitleField?: string }) => {
+    const { data = [], titleField = 'name', subtitleField = 'email' } = props
+
+    return (
+      <section className="py-12 px-6 bg-white">
+        <div className="max-w-2xl mx-auto">
+          <div className="divide-y divide-gray-200">
+            {data.slice(0, 10).map((item, i) => (
+              <div key={i} className="py-4 flex items-center gap-4">
+                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                  <span className="text-indigo-600 font-semibold text-sm">
+                    {(item[titleField] || 'U')[0].toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <div className="font-medium text-gray-900">{item[titleField] || `Item ${i + 1}`}</div>
+                  {item[subtitleField] && (
+                    <div className="text-sm text-gray-500">{item[subtitleField]}</div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          {data.length === 0 && (
+            <div className="text-center py-12 text-gray-500">No data available</div>
+          )}
+        </div>
+      </section>
+    )
+  },
+}
+
+// Data-bound component wrapper - fetches data and passes to renderer
+function DataBoundComponent({
+  component,
+  Renderer,
+  runtimeUrl,
+}: {
+  component: CanvasComponent
+  Renderer: (props: any) => JSX.Element
+  runtimeUrl?: string | null
+}) {
+  // Resolve the full URL for data binding
+  const resolvedConfig = useMemo(() => {
+    if (!component.dataBinding?.source) return component.dataBinding
+
+    let source = component.dataBinding.source
+
+    // If the source is a relative path and we have a runtime URL, combine them
+    if (source && !source.startsWith('http') && runtimeUrl) {
+      // Handle paths like "/posts" or "posts"
+      const cleanPath = source.startsWith('/') ? source : `/${source}`
+      source = `${runtimeUrl}${cleanPath}`
+    }
+
+    return {
+      ...component.dataBinding,
+      source,
+    }
+  }, [component.dataBinding, runtimeUrl])
+
+  const { data, loading, error } = useDataBinding(resolvedConfig)
+
+  // Map fetched data to component props
+  const mappedProps = useMemo(() => {
+    if (!data || !component.dataBinding?.mapping) {
+      return component.props
+    }
+    return mapDataToProps(data, component.dataBinding.mapping, component.props)
+  }, [data, component.dataBinding?.mapping, component.props])
+
+  // Show loading state
+  if (loading && !data) {
+    return (
+      <div className="py-12 px-6 bg-gray-50">
+        <div className="max-w-4xl mx-auto text-center">
+          <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-500">Loading data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (error && !data) {
+    return (
+      <div className="py-12 px-6 bg-red-50">
+        <div className="max-w-4xl mx-auto text-center">
+          <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-4" />
+          <p className="text-red-600 font-medium mb-2">Failed to load data</p>
+          <p className="text-red-500 text-sm">{error}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // For data components, pass the data array directly
+  const finalProps = { ...mappedProps }
+  if (['data-table', 'data-cards', 'data-list'].includes(component.type) && data) {
+    // Handle both { items: [...] } and [...] response formats
+    finalProps.data = Array.isArray(data) ? data : (data.items || data.data || data.results || [])
+  }
+
+  return <Renderer name={component.name} {...finalProps} />
 }
 
 export default function PreviewPage() {
@@ -556,6 +736,7 @@ export default function PreviewPage() {
   const [currentPage, setCurrentPage] = useState<Page | null>(null)
   const [loading, setLoading] = useState(true)
   const [showNav, setShowNav] = useState(false)
+  const [runtimeUrl, setRuntimeUrl] = useState<string | null>(null)
 
   useEffect(() => {
     // Get preview data from localStorage (set by builder page)
@@ -583,6 +764,11 @@ export default function PreviewPage() {
           const previewData = data as PreviewData
           setPages(previewData.pages)
 
+          // Store runtime URL if available
+          if (previewData.runtimeUrl) {
+            setRuntimeUrl(previewData.runtimeUrl)
+          }
+
           // Find the page to display
           const targetSlug = pageSlug || previewData.currentPageSlug || 'home'
           const page = previewData.pages.find(p => p.slug === targetSlug)
@@ -607,10 +793,24 @@ export default function PreviewPage() {
     setShowNav(false)
   }
 
-  const renderComponent = (component: CanvasComponent) => {
+  const renderComponent = useCallback((component: CanvasComponent) => {
     const Renderer = componentRenderers[component.type] || componentRenderers['default']
+
+    // Check if component has data binding configured
+    if (component.dataBinding?.source) {
+      return (
+        <DataBoundComponent
+          key={component.id}
+          component={component}
+          Renderer={Renderer}
+          runtimeUrl={runtimeUrl}
+        />
+      )
+    }
+
+    // Regular rendering without data binding
     return <Renderer key={component.id} name={component.name} {...component.props} />
-  }
+  }, [runtimeUrl])
 
   // Check if any component uses rgb-glow cursor
   const hasRgbGlowCursor = useMemo(() => {

@@ -15,6 +15,17 @@ import {
   Save,
   Key,
   Layers,
+  Rocket,
+  Loader2,
+  CheckCircle,
+  ExternalLink,
+  AlertTriangle,
+  XCircle,
+  Info,
+  X,
+  ChevronDown,
+  ChevronUp,
+  Settings2,
 } from 'lucide-react'
 import { useSchemaStore } from '@/stores/schemaStore'
 import { CollectionNode } from './CollectionNode'
@@ -22,7 +33,30 @@ import { FieldEditor } from './FieldEditor'
 import { RelationConnector } from './RelationConnector'
 import { SchemaCodePanel } from './SchemaCodePanel'
 
-export function DataModeler() {
+interface ValidationIssue {
+  severity: 'critical' | 'warning' | 'info'
+  category: string
+  message: string
+  field_path?: string
+  suggestion?: string
+}
+
+interface ValidationResult {
+  valid: boolean
+  can_deploy: boolean
+  issues: ValidationIssue[]
+  summary: {
+    critical: number
+    warnings: number
+    info: number
+  }
+}
+
+interface DataModelerProps {
+  projectId?: string
+}
+
+export function DataModeler({ projectId }: DataModelerProps) {
   const {
     schema,
     ui,
@@ -41,6 +75,9 @@ export function DataModeler() {
     history,
     historyIndex,
     exportSchema,
+    saveToProject,
+    deployBackend,
+    loadFromProject,
   } = useSchemaStore()
 
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -52,12 +89,23 @@ export function DataModeler() {
   const [showAiDialog, setShowAiDialog] = useState(false)
   const [aiPrompt, setAiPrompt] = useState('')
 
-  // Initialize schema if none exists
+  // Deployment state
+  const [isDeploying, setIsDeploying] = useState(false)
+  const [deployedUrl, setDeployedUrl] = useState<string | null>(null)
+  const [deployError, setDeployError] = useState<string | null>(null)
+
+  // Validation state
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
+  const [showValidationPanel, setShowValidationPanel] = useState(false)
+
+  // Load schema from project if projectId is provided
   useEffect(() => {
-    if (!schema) {
+    if (projectId) {
+      loadFromProject(projectId)
+    } else if (!schema) {
       initSchema('my-app')
     }
-  }, [schema, initSchema])
+  }, [projectId, loadFromProject, schema, initSchema])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -163,6 +211,49 @@ export function DataModeler() {
     console.log('AI Generate:', aiPrompt)
     setShowAiDialog(false)
     setAiPrompt('')
+  }
+
+  const handleDeploy = async () => {
+    if (!projectId) return
+
+    setIsDeploying(true)
+    setDeployError(null)
+    setDeployedUrl(null)
+    setValidationResult(null)
+
+    try {
+      const result = await deployBackend(projectId)
+
+      // Always show validation results if available
+      if (result.validation) {
+        setValidationResult(result.validation)
+        // Show panel if there are any issues
+        if (result.validation.issues.length > 0) {
+          setShowValidationPanel(true)
+        }
+      }
+
+      if (result.success) {
+        setDeployedUrl(result.api_url)
+      } else {
+        // Deployment blocked by validation
+        setDeployError(result.message || 'Deployment blocked due to validation issues')
+      }
+    } catch (error) {
+      setDeployError(error instanceof Error ? error.message : 'Deployment failed')
+    } finally {
+      setIsDeploying(false)
+    }
+  }
+
+  const handleSaveToProject = async () => {
+    if (!projectId) return
+
+    try {
+      await saveToProject(projectId)
+    } catch (error) {
+      console.error('Failed to save schema:', error)
+    }
   }
 
   const selectedCollection = ui.selectedCollection
@@ -272,7 +363,7 @@ export function DataModeler() {
           JSON
         </button>
 
-        {/* Save button */}
+        {/* Export button */}
         <button
           onClick={handleSave}
           className={`flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg ${
@@ -284,6 +375,119 @@ export function DataModeler() {
           <Download size={14} />
           Export
         </button>
+
+        {/* Deploy Backend button - only show if projectId is provided */}
+        {projectId && (
+          <div className="flex items-center gap-2">
+            {/* Save to project */}
+            <button
+              onClick={handleSaveToProject}
+              disabled={!isDirty}
+              className={`flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg ${
+                isDirty
+                  ? 'bg-zinc-700 text-white hover:bg-zinc-600'
+                  : 'bg-zinc-800 text-zinc-500 border border-zinc-700 cursor-not-allowed'
+              }`}
+              title="Save schema to project"
+            >
+              <Save size={14} />
+              Save
+            </button>
+
+            {/* Deploy */}
+            <button
+              onClick={handleDeploy}
+              disabled={isDeploying || !schema?.collections || Object.keys(schema.collections).length === 0}
+              className={`flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg ${
+                isDeploying
+                  ? 'bg-green-700 text-white cursor-wait'
+                  : deployedUrl
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-green-600 text-white hover:bg-green-700 disabled:bg-zinc-700 disabled:text-zinc-400 disabled:cursor-not-allowed'
+              }`}
+              title={deployedUrl ? 'Backend deployed! Click to redeploy' : 'Deploy backend API'}
+            >
+              {isDeploying ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : deployedUrl ? (
+                <CheckCircle size={14} />
+              ) : (
+                <Rocket size={14} />
+              )}
+              {isDeploying ? 'Deploying...' : deployedUrl ? 'Redeploy' : 'Deploy Backend'}
+            </button>
+
+            {/* Show deployed URL and Admin link */}
+            {deployedUrl && (() => {
+              // Extract runtime base URL for admin link
+              let adminUrl = '/admin'
+              try {
+                const url = new URL(deployedUrl)
+                adminUrl = `${url.origin}/admin`
+              } catch {
+                // If deployedUrl is a path, try to construct from window location
+                if (typeof window !== 'undefined') {
+                  adminUrl = deployedUrl.replace(/\/api\/p\/.*$/, '/admin')
+                }
+              }
+              return (
+                <>
+                  <a
+                    href={deployedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 px-2 py-1.5 text-xs text-green-400 hover:text-green-300 bg-zinc-800 rounded border border-zinc-700"
+                    title="Open API documentation"
+                  >
+                    <ExternalLink size={12} />
+                    API
+                  </a>
+                  <a
+                    href={adminUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 px-2 py-1.5 text-xs text-indigo-400 hover:text-indigo-300 bg-zinc-800 rounded border border-zinc-700"
+                    title="Open Admin Panel to manage data"
+                  >
+                    <Settings2 size={12} />
+                    Manage Data
+                  </a>
+                </>
+              )
+            })()}
+
+            {/* Show error */}
+            {deployError && (
+              <span className="text-xs text-red-400 max-w-[200px] truncate" title={deployError}>
+                {deployError}
+              </span>
+            )}
+
+            {/* Validation indicator */}
+            {validationResult && validationResult.issues.length > 0 && (
+              <button
+                onClick={() => setShowValidationPanel(!showValidationPanel)}
+                className={`flex items-center gap-1 px-2 py-1 text-xs rounded border ${
+                  validationResult.summary.critical > 0
+                    ? 'bg-red-900/50 text-red-400 border-red-700'
+                    : validationResult.summary.warnings > 0
+                      ? 'bg-yellow-900/50 text-yellow-400 border-yellow-700'
+                      : 'bg-blue-900/50 text-blue-400 border-blue-700'
+                }`}
+              >
+                {validationResult.summary.critical > 0 ? (
+                  <XCircle size={12} />
+                ) : validationResult.summary.warnings > 0 ? (
+                  <AlertTriangle size={12} />
+                ) : (
+                  <Info size={12} />
+                )}
+                {validationResult.issues.length} issue{validationResult.issues.length !== 1 ? 's' : ''}
+                {showValidationPanel ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Canvas */}
@@ -365,6 +569,100 @@ export function DataModeler() {
 
       {/* Code panel */}
       <SchemaCodePanel isOpen={showCodePanel} onClose={() => setShowCodePanel(false)} />
+
+      {/* Validation Results Panel */}
+      {showValidationPanel && validationResult && (
+        <div className="absolute bottom-16 right-4 z-30 w-96 max-h-96 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-700">
+            <h3 className="text-sm font-medium text-white flex items-center gap-2">
+              {validationResult.summary.critical > 0 ? (
+                <XCircle size={16} className="text-red-400" />
+              ) : validationResult.summary.warnings > 0 ? (
+                <AlertTriangle size={16} className="text-yellow-400" />
+              ) : (
+                <Info size={16} className="text-blue-400" />
+              )}
+              Schema Validation
+            </h3>
+            <button
+              onClick={() => setShowValidationPanel(false)}
+              className="p-1 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded"
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* Summary */}
+          <div className="px-4 py-2 bg-zinc-800/50 border-b border-zinc-700 flex items-center gap-4 text-xs">
+            {validationResult.summary.critical > 0 && (
+              <span className="flex items-center gap-1 text-red-400">
+                <XCircle size={12} />
+                {validationResult.summary.critical} critical
+              </span>
+            )}
+            {validationResult.summary.warnings > 0 && (
+              <span className="flex items-center gap-1 text-yellow-400">
+                <AlertTriangle size={12} />
+                {validationResult.summary.warnings} warnings
+              </span>
+            )}
+            {validationResult.summary.info > 0 && (
+              <span className="flex items-center gap-1 text-blue-400">
+                <Info size={12} />
+                {validationResult.summary.info} info
+              </span>
+            )}
+          </div>
+
+          {/* Issues list */}
+          <div className="overflow-y-auto max-h-64">
+            {validationResult.issues.map((issue, index) => (
+              <div
+                key={index}
+                className={`px-4 py-3 border-b border-zinc-800 ${
+                  issue.severity === 'critical'
+                    ? 'bg-red-900/10'
+                    : issue.severity === 'warning'
+                      ? 'bg-yellow-900/10'
+                      : 'bg-blue-900/10'
+                }`}
+              >
+                <div className="flex items-start gap-2">
+                  {issue.severity === 'critical' ? (
+                    <XCircle size={14} className="text-red-400 mt-0.5 flex-shrink-0" />
+                  ) : issue.severity === 'warning' ? (
+                    <AlertTriangle size={14} className="text-yellow-400 mt-0.5 flex-shrink-0" />
+                  ) : (
+                    <Info size={14} className="text-blue-400 mt-0.5 flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-white">{issue.message}</p>
+                    {issue.field_path && (
+                      <p className="text-xs text-zinc-500 mt-1 font-mono">
+                        {issue.field_path}
+                      </p>
+                    )}
+                    {issue.suggestion && (
+                      <p className="text-xs text-zinc-400 mt-1">
+                        💡 {issue.suggestion}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer */}
+          {!validationResult.can_deploy && (
+            <div className="px-4 py-3 bg-red-900/20 border-t border-red-900/50">
+              <p className="text-xs text-red-300">
+                Fix critical issues before deploying. These changes could break your application or cause data loss.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* AI Generate Dialog */}
       {showAiDialog && (
