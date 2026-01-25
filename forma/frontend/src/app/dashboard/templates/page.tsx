@@ -7,7 +7,7 @@ import { motion } from 'framer-motion'
 import {
   Layout, Search, Grid, List, Filter, ChevronDown, Eye, Plus,
   Star, Download, Globe, BarChart3, Package, Layers, Sparkles,
-  ShoppingBag, Users, FileCode
+  ShoppingBag, Users, FileCode, Database, FileText, Rocket
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useProjectStore } from '@/stores/projectStore'
@@ -22,6 +22,16 @@ interface Template {
   uses: number
   rating: number
   isPremium: boolean
+}
+
+interface BackendTemplate {
+  id: string
+  name: string
+  description: string
+  icon: React.ReactNode
+  color: string
+  collections: string[]
+  features: string[]
 }
 
 const categories = [
@@ -97,6 +107,64 @@ const mockTemplates: Template[] = [
   },
 ]
 
+// Backend/Schema templates for the Data Modeler
+const backendTemplates: BackendTemplate[] = [
+  {
+    id: 'blog',
+    name: 'Blog Platform',
+    description: 'Complete blog backend with posts, authors, categories, comments, and tags. Perfect for content sites.',
+    icon: <FileText className="w-8 h-8" />,
+    color: 'from-blue-500 to-blue-600',
+    collections: ['user', 'post', 'category', 'comment', 'tag'],
+    features: ['User authentication', 'Rich text content', 'Comment moderation', 'Category hierarchy', 'SEO-friendly slugs'],
+  },
+  {
+    id: 'saas',
+    name: 'SaaS Application',
+    description: 'Multi-tenant SaaS backend with organizations, teams, subscriptions, and billing integration.',
+    icon: <Users className="w-8 h-8" />,
+    color: 'from-purple-500 to-purple-600',
+    collections: ['user', 'organization', 'team', 'team_member', 'subscription', 'invoice'],
+    features: ['Multi-tenancy', 'Team management', 'Subscription tiers', 'Stripe integration', 'Role-based access'],
+  },
+  {
+    id: 'ecommerce',
+    name: 'E-Commerce Store',
+    description: 'Full e-commerce backend with products, orders, customers, reviews, and inventory tracking.',
+    icon: <ShoppingBag className="w-8 h-8" />,
+    color: 'from-emerald-500 to-emerald-600',
+    collections: ['user', 'category', 'product', 'order', 'order_item', 'review', 'address'],
+    features: ['Product catalog', 'Order management', 'Customer reviews', 'Inventory tracking', 'Address book'],
+  },
+  {
+    id: 'marketplace',
+    name: 'Marketplace',
+    description: 'Two-sided marketplace with sellers, buyers, listings, transactions, and messaging.',
+    icon: <Package className="w-8 h-8" />,
+    color: 'from-orange-500 to-orange-600',
+    collections: ['user', 'listing', 'transaction', 'message', 'review', 'payout'],
+    features: ['Seller profiles', 'Listing management', 'Secure transactions', 'In-app messaging', 'Review system'],
+  },
+  {
+    id: 'crm',
+    name: 'CRM System',
+    description: 'Customer relationship management with contacts, companies, deals, and activity tracking.',
+    icon: <BarChart3 className="w-8 h-8" />,
+    color: 'from-cyan-500 to-cyan-600',
+    collections: ['user', 'contact', 'company', 'deal', 'activity', 'note', 'task'],
+    features: ['Contact management', 'Deal pipeline', 'Activity timeline', 'Task assignments', 'Notes & history'],
+  },
+  {
+    id: 'booking',
+    name: 'Booking System',
+    description: 'Appointment and reservation system with availability, bookings, and reminders.',
+    icon: <Globe className="w-8 h-8" />,
+    color: 'from-pink-500 to-pink-600',
+    collections: ['user', 'service', 'availability', 'booking', 'reminder', 'review'],
+    features: ['Service catalog', 'Availability management', 'Online booking', 'Email reminders', 'Customer reviews'],
+  },
+]
+
 export default function TemplatesPage() {
   const router = useRouter()
   const { user, initialized, checkAuth } = useAuthStore()
@@ -106,6 +174,7 @@ export default function TemplatesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [activeTab, setActiveTab] = useState<'ui' | 'backend'>('ui')
 
   useEffect(() => {
     checkAuth()
@@ -121,6 +190,16 @@ export default function TemplatesPage() {
     try {
       const project = await createProject(`${template.name} Copy`)
       router.push(`/builder/${project.id}`)
+    } catch (error) {
+      console.error('Failed to create project from template:', error)
+    }
+  }
+
+  const handleUseBackendTemplate = async (template: BackendTemplate) => {
+    try {
+      const project = await createProject(`${template.name} App`)
+      // Navigate to modeler with template param to auto-load schema
+      router.push(`/builder/${project.id}?tab=data&template=${template.id}`)
     } catch (error) {
       console.error('Failed to create project from template:', error)
     }
@@ -157,8 +236,36 @@ export default function TemplatesPage() {
         </div>
       </div>
 
-      {/* Categories */}
-      <div className="flex gap-2 overflow-x-auto pb-4 mb-6 scrollbar-hide">
+      {/* Tabs: UI Templates vs Backend Templates */}
+      <div className="flex gap-1 p-1 mb-6 bg-white/5 border border-white/10 rounded-xl w-fit">
+        <button
+          onClick={() => setActiveTab('ui')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+            activeTab === 'ui'
+              ? 'bg-forma-500 text-white'
+              : 'text-white/60 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Layout className="w-4 h-4" />
+          UI Templates
+        </button>
+        <button
+          onClick={() => setActiveTab('backend')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
+            activeTab === 'backend'
+              ? 'bg-forma-500 text-white'
+              : 'text-white/60 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Database className="w-4 h-4" />
+          Backend Templates
+        </button>
+      </div>
+
+      {activeTab === 'ui' ? (
+        <>
+          {/* Categories */}
+          <div className="flex gap-2 overflow-x-auto pb-4 mb-6 scrollbar-hide">
         {categories.map((category) => (
           <button
             key={category.id}
@@ -345,6 +452,123 @@ export default function TemplatesPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+        </>
+      ) : (
+        /* Backend Templates Section */
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-gradient-to-br from-violet-500 to-purple-600 rounded-xl">
+              <Database className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-white">Backend Schema Templates</h2>
+              <p className="text-sm text-white/60">
+                Pre-built data models with authentication, APIs, and best practices
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {backendTemplates.map((template, i) => (
+              <motion.div
+                key={template.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="group relative rounded-2xl bg-white/5 border border-white/10 hover:border-forma-500/50 transition overflow-hidden"
+              >
+                {/* Header with gradient */}
+                <div className={`p-6 bg-gradient-to-br ${template.color} bg-opacity-10`}>
+                  <div className="flex items-start justify-between">
+                    <div className="p-3 bg-white/10 rounded-xl text-white">
+                      {template.icon}
+                    </div>
+                    <button
+                      onClick={() => handleUseBackendTemplate(template)}
+                      className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-sm font-medium transition opacity-0 group-hover:opacity-100"
+                    >
+                      Use Template
+                    </button>
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mt-4">{template.name}</h3>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 space-y-4">
+                  <p className="text-sm text-white/60 leading-relaxed">
+                    {template.description}
+                  </p>
+
+                  {/* Collections */}
+                  <div>
+                    <p className="text-xs font-medium text-white/40 uppercase tracking-wider mb-2">
+                      Collections
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {template.collections.map((collection) => (
+                        <span
+                          key={collection}
+                          className="px-2 py-0.5 text-xs font-medium bg-white/10 text-white/70 rounded"
+                        >
+                          {collection}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Features */}
+                  <div>
+                    <p className="text-xs font-medium text-white/40 uppercase tracking-wider mb-2">
+                      Features
+                    </p>
+                    <ul className="space-y-1">
+                      {template.features.slice(0, 3).map((feature) => (
+                        <li key={feature} className="flex items-center gap-2 text-sm text-white/60">
+                          <Sparkles className="w-3 h-3 text-forma-400" />
+                          {feature}
+                        </li>
+                      ))}
+                      {template.features.length > 3 && (
+                        <li className="text-xs text-white/40">
+                          +{template.features.length - 3} more
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="px-6 py-4 border-t border-white/5">
+                  <button
+                    onClick={() => handleUseBackendTemplate(template)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-forma-500 hover:bg-forma-600 text-white text-sm font-medium transition"
+                  >
+                    <Rocket className="w-4 h-4" />
+                    Start with {template.name}
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Info box */}
+          <div className="mt-8 p-6 rounded-2xl bg-gradient-to-r from-forma-500/10 to-purple-500/10 border border-forma-500/20">
+            <div className="flex items-start gap-4">
+              <div className="p-2 bg-forma-500/20 rounded-xl">
+                <Sparkles className="w-5 h-5 text-forma-400" />
+              </div>
+              <div>
+                <h4 className="font-medium text-white mb-1">Fully Customizable</h4>
+                <p className="text-sm text-white/60">
+                  Each template gives you a head start with a complete data model.
+                  After creating your project, customize collections, add fields,
+                  and modify relationships in the visual Data Modeler.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </AdminLayout>

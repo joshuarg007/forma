@@ -26,12 +26,19 @@ import {
   ChevronDown,
   ChevronUp,
   Settings2,
+  LayoutTemplate,
 } from 'lucide-react'
 import { useSchemaStore } from '@/stores/schemaStore'
 import { CollectionNode } from './CollectionNode'
 import { FieldEditor } from './FieldEditor'
 import { RelationConnector } from './RelationConnector'
 import { SchemaCodePanel } from './SchemaCodePanel'
+import { TemplateSelector } from './TemplateSelector'
+import { WelcomeTour } from './WelcomeTour'
+import { DataEditor } from './DataEditor'
+import { DeploymentOptions } from './DeploymentOptions'
+import { PublishModal } from './PublishModal'
+import { useToast } from '@/components/ui/Toast'
 
 interface ValidationIssue {
   severity: 'critical' | 'warning' | 'info'
@@ -62,6 +69,7 @@ export function DataModeler({ projectId }: DataModelerProps) {
     ui,
     isDirty,
     initSchema,
+    loadSchema,
     addCollection,
     addAuthCollection,
     selectCollection,
@@ -80,6 +88,7 @@ export function DataModeler({ projectId }: DataModelerProps) {
     loadFromProject,
   } = useSchemaStore()
 
+  const toast = useToast()
   const canvasRef = useRef<HTMLDivElement>(null)
   const [isPanning, setIsPanning] = useState(false)
   const [panStart, setPanStart] = useState({ x: 0, y: 0 })
@@ -88,6 +97,10 @@ export function DataModeler({ projectId }: DataModelerProps) {
   const [showCodePanel, setShowCodePanel] = useState(false)
   const [showAiDialog, setShowAiDialog] = useState(false)
   const [aiPrompt, setAiPrompt] = useState('')
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false)
+  const [showDataEditor, setShowDataEditor] = useState(false)
+  const [showDeployOptions, setShowDeployOptions] = useState(false)
+  const [showPublishModal, setShowPublishModal] = useState(false)
 
   // Deployment state
   const [isDeploying, setIsDeploying] = useState(false)
@@ -235,12 +248,17 @@ export function DataModeler({ projectId }: DataModelerProps) {
 
       if (result.success) {
         setDeployedUrl(result.api_url)
+        toast.success('Backend deployed!', 'Your API is now live and ready to use.')
       } else {
         // Deployment blocked by validation
-        setDeployError(result.message || 'Deployment blocked due to validation issues')
+        const errorMsg = result.message || 'Deployment blocked due to validation issues'
+        setDeployError(errorMsg)
+        toast.error('Deployment failed', errorMsg)
       }
     } catch (error) {
-      setDeployError(error instanceof Error ? error.message : 'Deployment failed')
+      const errorMsg = error instanceof Error ? error.message : 'Deployment failed'
+      setDeployError(errorMsg)
+      toast.error('Deployment error', errorMsg)
     } finally {
       setIsDeploying(false)
     }
@@ -251,8 +269,10 @@ export function DataModeler({ projectId }: DataModelerProps) {
 
     try {
       await saveToProject(projectId)
+      toast.success('Schema saved', 'Your changes have been saved.')
     } catch (error) {
-      console.error('Failed to save schema:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Failed to save schema'
+      toast.error('Save failed', errorMsg)
     }
   }
 
@@ -309,6 +329,15 @@ export function DataModeler({ projectId }: DataModelerProps) {
             <Redo size={14} />
           </button>
         </div>
+
+        {/* Templates */}
+        <button
+          onClick={() => setShowTemplateSelector(true)}
+          className="flex items-center gap-1 px-3 py-1.5 text-sm bg-zinc-800 text-zinc-300 hover:bg-zinc-700 rounded-lg border border-zinc-700"
+        >
+          <LayoutTemplate size={14} />
+          Templates
+        </button>
 
         {/* AI Generate */}
         <button
@@ -376,6 +405,29 @@ export function DataModeler({ projectId }: DataModelerProps) {
           Export
         </button>
 
+        {/* Self-Host button */}
+        <button
+          onClick={() => setShowDeployOptions(true)}
+          disabled={!schema?.collections || Object.keys(schema.collections).length === 0}
+          className="flex items-center gap-1 px-3 py-1.5 text-sm bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Self-host on Render, Railway, or Docker"
+        >
+          <ExternalLink size={14} />
+          Self-Host
+        </button>
+
+        {/* One-Click Publish button */}
+        {projectId && (
+          <button
+            onClick={() => setShowPublishModal(true)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 rounded-lg shadow-lg shadow-green-500/25 transition-all"
+            title="Publish your app live"
+          >
+            <Rocket size={16} />
+            Publish
+          </button>
+        )}
+
         {/* Deploy Backend button - only show if projectId is provided */}
         {projectId && (
           <div className="flex items-center gap-2">
@@ -442,16 +494,14 @@ export function DataModeler({ projectId }: DataModelerProps) {
                     <ExternalLink size={12} />
                     API
                   </a>
-                  <a
-                    href={adminUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => setShowDataEditor(true)}
                     className="flex items-center gap-1 px-2 py-1.5 text-xs text-indigo-400 hover:text-indigo-300 bg-zinc-800 rounded border border-zinc-700"
-                    title="Open Admin Panel to manage data"
+                    title="View and edit your data"
                   >
                     <Settings2 size={12} />
                     Manage Data
-                  </a>
+                  </button>
                 </>
               )
             })()}
@@ -701,6 +751,55 @@ export function DataModeler({ projectId }: DataModelerProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Template Selector */}
+      <TemplateSelector
+        isOpen={showTemplateSelector}
+        onClose={() => setShowTemplateSelector(false)}
+        onSelect={(templateSchema) => {
+          loadSchema(templateSchema)
+          setShowTemplateSelector(false)
+          toast.success(
+            'Template loaded',
+            `${Object.keys(templateSchema.collections).length} collections ready to customize.`
+          )
+        }}
+      />
+
+      {/* Welcome Tour (shows on first visit) */}
+      <WelcomeTour />
+
+      {/* Data Editor (accessible after deployment) */}
+      <DataEditor
+        isOpen={showDataEditor}
+        onClose={() => setShowDataEditor(false)}
+        apiUrl={deployedUrl || ''}
+        schema={schema}
+      />
+
+      {/* Deployment Options (Render/Railway/Docker) */}
+      <DeploymentOptions
+        isOpen={showDeployOptions}
+        onClose={() => setShowDeployOptions(false)}
+        schema={schema}
+        projectId={projectId}
+      />
+
+      {/* One-Click Publish Modal */}
+      {projectId && (
+        <PublishModal
+          isOpen={showPublishModal}
+          onClose={() => setShowPublishModal(false)}
+          projectId={projectId}
+          projectName={schema?.name || 'My App'}
+          hasSchema={!!(schema?.collections && Object.keys(schema.collections).length > 0)}
+          onPublishComplete={(urls) => {
+            if (urls.backend) {
+              setDeployedUrl(urls.backend)
+            }
+          }}
+        />
       )}
     </div>
   )

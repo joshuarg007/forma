@@ -4,6 +4,7 @@ export type { CanvasComponent }
 
 // Schema Types for Formabase Data Modeler
 export * from './schema'
+import type { SchemaDefinition } from './schema'
 
 export interface User {
   id: string

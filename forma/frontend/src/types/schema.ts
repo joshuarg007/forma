@@ -73,10 +73,10 @@ export interface PermissionRule {
 }
 
 export interface CollectionPermissions {
-  create?: string[] | PermissionRule
-  read?: string[] | PermissionRule
-  update?: string[] | PermissionRule
-  delete?: string[] | PermissionRule
+  create?: string | string[] | PermissionRule
+  read?: string | string[] | PermissionRule
+  update?: string | string[] | PermissionRule
+  delete?: string | string[] | PermissionRule
 }
 
 export interface CollectionHooks {
@@ -151,6 +151,7 @@ export interface SchemaDefinition {
   $schema?: string
   version: string
   name: string
+  description?: string
   collections: Record<string, CollectionDefinition>
   settings?: SchemaSettings
 }
@@ -170,19 +171,97 @@ export interface SchemaUIState {
 }
 
 // Field type metadata for UI
-export const FIELD_TYPE_INFO: Record<FieldType, { label: string; icon: string; color: string }> = {
-  text: { label: 'Text', icon: 'Type', color: '#3B82F6' },
-  email: { label: 'Email', icon: 'Mail', color: '#8B5CF6' },
-  integer: { label: 'Integer', icon: 'Hash', color: '#10B981' },
-  float: { label: 'Float', icon: 'Percent', color: '#10B981' },
-  boolean: { label: 'Boolean', icon: 'ToggleLeft', color: '#F59E0B' },
-  datetime: { label: 'DateTime', icon: 'Calendar', color: '#EC4899' },
-  date: { label: 'Date', icon: 'CalendarDays', color: '#EC4899' },
-  enum: { label: 'Enum', icon: 'List', color: '#6366F1' },
-  json: { label: 'JSON', icon: 'Braces', color: '#64748B' },
-  richtext: { label: 'Rich Text', icon: 'FileText', color: '#0EA5E9' },
-  file: { label: 'File', icon: 'Paperclip', color: '#F97316' },
-  relation: { label: 'Relation', icon: 'Link', color: '#EF4444' },
+export const FIELD_TYPE_INFO: Record<FieldType, {
+  label: string
+  icon: string
+  color: string
+  description: string
+  example: string
+}> = {
+  text: {
+    label: 'Text',
+    icon: 'Type',
+    color: '#3B82F6',
+    description: 'Short or long text. Use for names, titles, descriptions, or any text content.',
+    example: 'John Doe, Product Title, Bio'
+  },
+  email: {
+    label: 'Email',
+    icon: 'Mail',
+    color: '#8B5CF6',
+    description: 'Email address with validation. Automatically checks for valid email format.',
+    example: 'user@example.com'
+  },
+  integer: {
+    label: 'Integer',
+    icon: 'Hash',
+    color: '#10B981',
+    description: 'Whole numbers without decimals. Use for counts, quantities, or IDs.',
+    example: '42, 100, -5'
+  },
+  float: {
+    label: 'Float',
+    icon: 'Percent',
+    color: '#10B981',
+    description: 'Numbers with decimals. Use for prices, percentages, or measurements.',
+    example: '99.99, 3.14, -0.5'
+  },
+  boolean: {
+    label: 'Boolean',
+    icon: 'ToggleLeft',
+    color: '#F59E0B',
+    description: 'True or false value. Use for yes/no flags like "is_active" or "is_published".',
+    example: 'true, false'
+  },
+  datetime: {
+    label: 'DateTime',
+    icon: 'Calendar',
+    color: '#EC4899',
+    description: 'Date and time combined. Use for timestamps, scheduling, or events.',
+    example: '2024-03-15 14:30:00'
+  },
+  date: {
+    label: 'Date',
+    icon: 'CalendarDays',
+    color: '#EC4899',
+    description: 'Date without time. Use for birthdays, deadlines, or simple dates.',
+    example: '2024-03-15'
+  },
+  enum: {
+    label: 'Enum',
+    icon: 'List',
+    color: '#6366F1',
+    description: 'Choose from a fixed list of options. Use for status, category, or role.',
+    example: 'draft | published | archived'
+  },
+  json: {
+    label: 'JSON',
+    icon: 'Braces',
+    color: '#64748B',
+    description: 'Flexible structured data. Use for settings, metadata, or complex objects.',
+    example: '{"key": "value", "items": []}'
+  },
+  richtext: {
+    label: 'Rich Text',
+    icon: 'FileText',
+    color: '#0EA5E9',
+    description: 'Formatted text with HTML. Use for blog posts, articles, or content with styling.',
+    example: '<p>Bold and <em>italic</em></p>'
+  },
+  file: {
+    label: 'File',
+    icon: 'Paperclip',
+    color: '#F97316',
+    description: 'File upload. Stores a reference to uploaded files like images or documents.',
+    example: 'avatar.png, document.pdf'
+  },
+  relation: {
+    label: 'Relation',
+    icon: 'Link',
+    color: '#EF4444',
+    description: 'Link to another collection. Use to connect related data like posts to authors.',
+    example: 'Post → Author, Order → Customer'
+  },
 }
 
 export const RELATION_TYPE_INFO: Record<RelationType, { label: string; description: string }> = {

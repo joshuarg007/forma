@@ -1,0 +1,111 @@
+# Production Docker Compose for Forma Runtime (Managed Hosting)
+#
+# This configuration runs the shared multi-tenant Runtime for Forma's managed hosting.
+# All user projects are deployed to this shared instance.
+#
+# Deploy with: docker compose -f docker-compose.yml up -d
+#
+version: '3.8'
+
+services:
+  runtime:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      # Multi-tenant mode
+      - MULTI_TENANT=true
+      - INTERNAL_KEY=${INTERNAL_KEY:?Set INTERNAL_KEY for secure registration}
+
+      # Database
+      - DATABASE_URL=${DATABASE_URL:-postgresql://forma:forma@db:5432/forma_runtime}
+
+      # JWT
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET for authentication}
+      - JWT_ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - REFRESH_TOKEN_EXPIRE_DAYS=7
+
+      # CORS (allow Forma Builder)
+      - CORS_ORIGINS=https://forma.app,https://www.forma.app,https://builder.forma.app
+
+      # AI Validation (optional)
+      - AI_VALIDATION_ENABLED=${AI_VALIDATION_ENABLED:-false}
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5-coder:7b}
+
+      # Storage
+      - STORAGE_PROVIDER=${STORAGE_PROVIDER:-s3}
+      - S3_BUCKET=${S3_BUCKET:-forma-uploads}
+      - S3_REGION=${S3_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+
+      # Misc
+      - DEBUG=false
+      - LOG_LEVEL=info
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - forma-network
+
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_DB=forma_runtime
+      - POSTGRES_USER=forma
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forma -d forma_runtime"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - forma-network
+
+  # Optional: Redis for caching (future use)
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - forma-network
+
+  # Optional: Ollama for AI validation
+  # Uncomment if you want AI-powered schema validation
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   restart: always
+  #   volumes:
+  #     - ollama_data:/root/.ollama
+  #   networks:
+  #     - forma-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  # ollama_data:
+
+networks:
+  forma-network:
+    driver: bridge

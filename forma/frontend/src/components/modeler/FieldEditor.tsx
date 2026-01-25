@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Trash2, Info } from 'lucide-react'
+import { X, Trash2, HelpCircle } from 'lucide-react'
 import { useSchemaStore } from '@/stores/schemaStore'
 import type { FieldDefinition, FieldType, RelationType } from '@/types/schema'
 import { FIELD_TYPE_INFO, RELATION_TYPE_INFO } from '@/types/schema'
+import { Tooltip, InfoTooltip } from '@/components/ui/Tooltip'
 
 interface FieldEditorProps {
   collection: string
@@ -108,8 +109,18 @@ export function FieldEditor({ collection, fieldName, field, onClose }: FieldEdit
 
         {/* Field Type */}
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1">
+          <label className="flex items-center gap-1.5 text-sm font-medium text-zinc-300 mb-1">
             Type
+            <InfoTooltip
+              content={
+                <div className="space-y-1">
+                  <p className="font-medium">{FIELD_TYPE_INFO[localField.type].label}</p>
+                  <p className="text-zinc-300">{FIELD_TYPE_INFO[localField.type].description}</p>
+                  <p className="text-zinc-400 text-xs">Example: {FIELD_TYPE_INFO[localField.type].example}</p>
+                </div>
+              }
+              side="right"
+            />
           </label>
           <select
             value={localField.type}
@@ -122,10 +133,16 @@ export function FieldEditor({ collection, fieldName, field, onClose }: FieldEdit
               </option>
             ))}
           </select>
+          {/* Type description */}
+          <p className="mt-1.5 text-xs text-zinc-500">
+            {FIELD_TYPE_INFO[localField.type].description}
+          </p>
         </div>
 
         {/* Common Options */}
-        <div className="space-y-2">
+        <div className="space-y-2 p-3 bg-zinc-800/50 rounded-lg">
+          <h4 className="text-sm font-medium text-zinc-400 mb-2">Validation</h4>
+
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
@@ -134,6 +151,10 @@ export function FieldEditor({ collection, fieldName, field, onClose }: FieldEdit
               className="rounded border-zinc-600 bg-zinc-800 text-blue-500 focus:ring-blue-500"
             />
             <span className="text-sm text-zinc-300">Required</span>
+            <InfoTooltip
+              content="This field must have a value. Users cannot save without filling it in."
+              side="right"
+            />
           </label>
 
           <label className="flex items-center gap-2">
@@ -144,6 +165,10 @@ export function FieldEditor({ collection, fieldName, field, onClose }: FieldEdit
               className="rounded border-zinc-600 bg-zinc-800 text-blue-500 focus:ring-blue-500"
             />
             <span className="text-sm text-zinc-300">Unique</span>
+            <InfoTooltip
+              content="No two items can have the same value for this field. Use for usernames, emails, or slugs."
+              side="right"
+            />
           </label>
 
           <label className="flex items-center gap-2">
@@ -154,6 +179,10 @@ export function FieldEditor({ collection, fieldName, field, onClose }: FieldEdit
               className="rounded border-zinc-600 bg-zinc-800 text-blue-500 focus:ring-blue-500"
             />
             <span className="text-sm text-zinc-300">Nullable</span>
+            <InfoTooltip
+              content="This field can be empty (null). If unchecked, a value is always required in the database."
+              side="right"
+            />
           </label>
         </div>
 
