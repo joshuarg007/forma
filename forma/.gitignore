@@ -38,15 +38,3 @@ htmlcov/
 # Database
 *.db
 *.sqlite3
-
-# Training data (large files)
-formacode-training/
-
-# Raw images
-raw-images/
-
-# Uploads
-uploads/
-
-# Cache
-.cache/

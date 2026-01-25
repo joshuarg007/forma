@@ -1,0 +1,151 @@
+{
+  "version": "1.0",
+  "name": "blog",
+  "collections": {
+    "user": {
+      "displayName": "User",
+      "auth": true,
+      "fields": {
+        "email": {
+          "type": "email",
+          "required": true,
+          "unique": true
+        },
+        "password_hash": {
+          "type": "text",
+          "required": true,
+          "admin": true
+        },
+        "name": {
+          "type": "text",
+          "required": true,
+          "maxLength": 100
+        },
+        "bio": {
+          "type": "text",
+          "maxLength": 500
+        },
+        "avatar": {
+          "type": "file",
+          "accept": ["image/jpeg", "image/png", "image/webp"]
+        },
+        "role": {
+          "type": "enum",
+          "options": ["admin", "editor", "author", "user"],
+          "default": "user"
+        }
+      }
+    },
+    "post": {
+      "displayName": "Blog Post",
+      "timestamps": true,
+      "fields": {
+        "title": {
+          "type": "text",
+          "required": true,
+          "maxLength": 200,
+          "searchable": true
+        },
+        "slug": {
+          "type": "text",
+          "unique": true,
+          "required": true
+        },
+        "content": {
+          "type": "richtext",
+          "searchable": true
+        },
+        "excerpt": {
+          "type": "text",
+          "maxLength": 500
+        },
+        "featured_image": {
+          "type": "file",
+          "accept": ["image/*"]
+        },
+        "author": {
+          "type": "relation",
+          "target": "user",
+          "relation": "many-to-one",
+          "required": true
+        },
+        "category": {
+          "type": "relation",
+          "target": "category",
+          "relation": "many-to-one"
+        },
+        "status": {
+          "type": "enum",
+          "options": ["draft", "published", "archived"],
+          "default": "draft"
+        },
+        "published_at": {
+          "type": "datetime"
+        },
+        "view_count": {
+          "type": "integer",
+          "default": 0
+        }
+      },
+      "api": {
+        "defaultLimit": 10,
+        "maxLimit": 50,
+        "searchFields": ["title", "content", "excerpt"]
+      }
+    },
+    "category": {
+      "displayName": "Category",
+      "fields": {
+        "name": {
+          "type": "text",
+          "required": true,
+          "maxLength": 50
+        },
+        "slug": {
+          "type": "text",
+          "unique": true,
+          "required": true
+        },
+        "description": {
+          "type": "text",
+          "maxLength": 200
+        }
+      }
+    },
+    "comment": {
+      "displayName": "Comment",
+      "timestamps": true,
+      "fields": {
+        "content": {
+          "type": "text",
+          "required": true,
+          "maxLength": 2000
+        },
+        "post": {
+          "type": "relation",
+          "target": "post",
+          "relation": "many-to-one",
+          "required": true
+        },
+        "author": {
+          "type": "relation",
+          "target": "user",
+          "relation": "many-to-one",
+          "required": true
+        },
+        "approved": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    }
+  },
+  "settings": {
+    "auth": {
+      "providers": ["email"],
+      "sessionDuration": 604800,
+      "allowRegistration": true,
+      "defaultRole": "user"
+    }
+  }
+}
