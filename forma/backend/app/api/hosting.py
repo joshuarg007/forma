@@ -290,9 +290,9 @@ async def deploy_project(
     db.add(log)
     db.commit()
 
-    # TODO: Trigger background deployment task
-    # from app.worker.tasks import deploy_project_task
-    # deploy_project_task.delay(str(project.id), str(user.id), str(deployment.id))
+    # Trigger background deployment task
+    from app.services.deployment_worker import trigger_deployment
+    trigger_deployment(deployment.id)
 
     return DeploymentResponse.model_validate(deployment)
 

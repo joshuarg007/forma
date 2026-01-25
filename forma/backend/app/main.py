@@ -1,4 +1,7 @@
 """FORMA - AI-Powered React Builder"""
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -9,10 +12,32 @@ from app.api import auth, projects, components, ai, billing, marketplace, github
 # Create tables
 Base.metadata.create_all(bind=engine)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup and shutdown events."""
+    # Startup: Start the deployment worker
+    from app.services.deployment_worker import deployment_worker
+
+    # Start worker as background task
+    worker_task = asyncio.create_task(deployment_worker.run_worker_loop(poll_interval=10))
+
+    yield
+
+    # Shutdown: Stop the worker
+    deployment_worker.stop()
+    worker_task.cancel()
+    try:
+        await worker_task
+    except asyncio.CancelledError:
+        pass
+
+
 app = FastAPI(
     title="FORMA API",
     description="AI-Powered React Component Builder",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS
