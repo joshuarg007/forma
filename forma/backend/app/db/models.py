@@ -667,6 +667,108 @@ class FormSubmissionStatus(str, PyEnum):
     SPAM = "spam"
 
 
+# =============================================================================
+# ANALYTICS MODELS
+# =============================================================================
+
+class PageView(Base):
+    """Page view event for a deployed project."""
+    __tablename__ = "page_views"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    project_id = Column(GUID(), ForeignKey("projects.id"), nullable=False, index=True)
+
+    # Page info
+    page_path = Column(String(500), nullable=False)
+    page_title = Column(String(255))
+
+    # Visitor info (anonymized)
+    visitor_id = Column(String(64), index=True)  # Hashed identifier
+    session_id = Column(String(64), index=True)
+
+    # Traffic source
+    referrer = Column(String(500))
+    referrer_domain = Column(String(255))
+    utm_source = Column(String(100))
+    utm_medium = Column(String(100))
+    utm_campaign = Column(String(255))
+
+    # Device info
+    device_type = Column(String(20))  # desktop, mobile, tablet
+    browser = Column(String(50))
+    os = Column(String(50))
+    screen_width = Column(Integer)
+
+    # Location (country-level only for privacy)
+    country = Column(String(2))  # ISO country code
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    # Relationship
+    project = relationship("Project", backref="page_views")
+
+
+class AnalyticsEvent(Base):
+    """Custom event tracking for deployed projects."""
+    __tablename__ = "analytics_events"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    project_id = Column(GUID(), ForeignKey("projects.id"), nullable=False, index=True)
+
+    # Event info
+    event_name = Column(String(100), nullable=False, index=True)
+    event_category = Column(String(50))  # click, form, purchase, etc.
+    event_value = Column(Float)  # Optional numeric value
+
+    # Context
+    page_path = Column(String(500))
+    visitor_id = Column(String(64))
+    session_id = Column(String(64))
+
+    # Additional data
+    properties = Column(JSON, default=dict)
+
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    # Relationship
+    project = relationship("Project", backref="analytics_events")
+
+
+class AnalyticsSummary(Base):
+    """Pre-aggregated analytics for performance."""
+    __tablename__ = "analytics_summaries"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    project_id = Column(GUID(), ForeignKey("projects.id"), nullable=False, index=True)
+
+    # Time period
+    period_date = Column(DateTime, nullable=False, index=True)  # Date of the summary
+    period_type = Column(String(10), nullable=False)  # "day", "week", "month"
+
+    # Metrics
+    page_views = Column(Integer, default=0)
+    unique_visitors = Column(Integer, default=0)
+    sessions = Column(Integer, default=0)
+    avg_session_duration = Column(Float, default=0)  # seconds
+    bounce_rate = Column(Float, default=0)  # percentage
+
+    # Top pages (JSON array)
+    top_pages = Column(JSON, default=list)
+    # Top referrers (JSON array)
+    top_referrers = Column(JSON, default=list)
+    # Device breakdown (JSON object)
+    device_breakdown = Column(JSON, default=dict)
+    # Country breakdown (JSON object)
+    country_breakdown = Column(JSON, default=dict)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
+    project = relationship("Project", backref="analytics_summaries")
+
+
 class FormSubmission(Base):
     """Submission to a form."""
     __tablename__ = "form_submissions"

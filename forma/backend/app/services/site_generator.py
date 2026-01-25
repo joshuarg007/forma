@@ -12,6 +12,71 @@ class StaticSiteGenerator:
     HTML with Tailwind CSS for instant deployment.
     """
 
+    # Analytics tracking script (privacy-friendly)
+    ANALYTICS_SCRIPT = '''
+<script>
+(function() {
+  // Forma Analytics - Privacy-friendly tracking
+  const FORMA_API = '{api_url}';
+  const PROJECT_ID = '{project_id}';
+
+  // Get UTM params
+  const urlParams = new URLSearchParams(window.location.search);
+  const utm = {
+    source: urlParams.get('utm_source'),
+    medium: urlParams.get('utm_medium'),
+    campaign: urlParams.get('utm_campaign')
+  };
+
+  // Track page view
+  function trackPageView() {
+    fetch(FORMA_API + '/api/track/' + PROJECT_ID + '/pageview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        page_path: window.location.pathname,
+        page_title: document.title,
+        referrer: document.referrer,
+        utm_source: utm.source,
+        utm_medium: utm.medium,
+        utm_campaign: utm.campaign,
+        screen_width: window.screen.width
+      })
+    }).catch(function() {});
+  }
+
+  // Track custom events
+  window.formaTrack = function(eventName, category, value, properties) {
+    fetch(FORMA_API + '/api/track/' + PROJECT_ID + '/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_name: eventName,
+        event_category: category,
+        event_value: value,
+        page_path: window.location.pathname,
+        properties: properties
+      })
+    }).catch(function() {});
+  };
+
+  // Track page view on load
+  if (document.readyState === 'complete') {
+    trackPageView();
+  } else {
+    window.addEventListener('load', trackPageView);
+  }
+
+  // Track outbound link clicks
+  document.addEventListener('click', function(e) {
+    var link = e.target.closest('a');
+    if (link && link.hostname !== window.location.hostname) {
+      window.formaTrack('outbound_click', 'link', null, { url: link.href });
+    }
+  });
+})();
+</script>'''
+
     # Form handling JavaScript (injected into pages with forms)
     FORM_HANDLER_SCRIPT = '''
 <script>
@@ -452,10 +517,11 @@ class StaticSiteGenerator:
         }
     }
 
-    def __init__(self, project_name: str = "My Site", project_id: str = None, api_url: str = None):
+    def __init__(self, project_name: str = "My Site", project_id: str = None, api_url: str = None, analytics_enabled: bool = True):
         self.project_name = project_name
         self.project_id = project_id or ""
         self.api_url = api_url or "https://api.forma.app"
+        self.analytics_enabled = analytics_enabled
 
     def _render_component(self, component: Dict[str, Any]) -> str:
         """Render a single component to HTML."""
@@ -528,13 +594,24 @@ class StaticSiteGenerator:
             for c in components
         )
 
-        # Generate form handler script if needed
-        form_script = ""
-        if has_forms and self.project_id:
-            form_script = self.FORM_HANDLER_SCRIPT.format(
+        # Generate scripts
+        scripts = []
+
+        # Analytics script (if enabled)
+        if self.analytics_enabled and self.project_id:
+            scripts.append(self.ANALYTICS_SCRIPT.format(
                 api_url=self.api_url,
                 project_id=self.project_id
-            )
+            ))
+
+        # Form handler script (if page has forms)
+        if has_forms and self.project_id:
+            scripts.append(self.FORM_HANDLER_SCRIPT.format(
+                api_url=self.api_url,
+                project_id=self.project_id
+            ))
+
+        scripts_html = '\n'.join(scripts)
 
         # Generate HTML document
         html = f'''<!DOCTYPE html>
@@ -554,7 +631,7 @@ class StaticSiteGenerator:
 </head>
 <body class="min-h-screen bg-white">
 {body_content}
-{form_script}
+{scripts_html}
 </body>
 </html>'''
 
