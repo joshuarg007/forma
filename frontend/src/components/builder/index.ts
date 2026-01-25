@@ -17,7 +17,7 @@ export { NavbarSimple, Sidebar, Tabs, Breadcrumbs, MegaMenu, CommandPalette } fr
 export { TextBlock, FeatureGrid, CardBasic, TestimonialCard, PricingCard, TeamCard, BlogCard, Timeline, Accordion, Comparison, LogoCloud } from './content'
 
 // Form Modules
-export { ContactForm, NewsletterSignup, LoginForm, RegisterForm } from './forms'
+export { ContactForm, NewsletterSignup, LoginForm, RegisterForm, OAuthButtons, LinkAccountPage } from './forms'
 
 // Media Modules
 export { ImageModule, VideoEmbed, Gallery, Carousel } from './media'
@@ -69,7 +69,7 @@ import { Container, Section, Grid, FlexRow, FlexColumn } from './layout'
 import { HeroSimple, HeroSplit, HeroVideo, HeroAnimated, HeroGradient, HeroParallax } from './hero'
 import { NavbarSimple, Sidebar, Tabs, Breadcrumbs, MegaMenu, CommandPalette } from './navigation'
 import { TextBlock, FeatureGrid, CardBasic, TestimonialCard, PricingCard, TeamCard, BlogCard, Timeline, Accordion, Comparison, LogoCloud } from './content'
-import { ContactForm, NewsletterSignup, LoginForm, RegisterForm } from './forms'
+import { ContactForm, NewsletterSignup, LoginForm, RegisterForm, OAuthButtons, LinkAccountPage } from './forms'
 import { ImageModule, VideoEmbed, Gallery, Carousel } from './media'
 import { CTABanner } from './cta'
 import { FooterSimple, FooterColumns } from './footer'
@@ -135,6 +135,8 @@ export const moduleRegistry = {
   'section-newsletter': NewsletterSignup,
   'login-form': LoginForm,
   'register-form': RegisterForm,
+  'oauth-buttons': OAuthButtons,
+  'link-account-page': LinkAccountPage,
 
   // Media
   'image': ImageModule,
