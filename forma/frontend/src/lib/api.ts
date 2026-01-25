@@ -504,6 +504,19 @@ class APIClient {
     )
   }
 
+  async checkDomainPropagation(projectId: string, domainId: string) {
+    return this.fetch<{
+      domain: string
+      propagation_complete: boolean
+      servers_resolved: number
+      total_servers: number
+      details: Record<string, { status: string; ips?: string[]; error?: string }>
+    }>(
+      `/api/projects/${projectId}/domains/${domainId}/check-propagation`,
+      { method: 'POST' }
+    )
+  }
+
   // Subdomain utilities
   async checkSubdomain(subdomain: string) {
     return this.fetch<{ subdomain: string; available: boolean; suggested?: string }>(

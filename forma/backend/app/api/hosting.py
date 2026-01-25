@@ -537,6 +537,9 @@ async def verify_custom_domain(
     user: User = Depends(get_current_user_required)
 ):
     """Verify DNS records for a custom domain."""
+    from app.services.dns_verification import dns_service
+    from datetime import datetime
+
     project = get_project_or_404(project_id, user, db)
 
     domain = db.query(CustomDomain).filter(
@@ -550,15 +553,35 @@ async def verify_custom_domain(
             detail="Domain not found"
         )
 
-    # TODO: Implement actual DNS verification
-    # For now, just update status to validating and trigger background check
+    # Update status to validating
     domain.status = CustomDomainStatus.VALIDATING
     db.commit()
-    db.refresh(domain)
 
-    # TODO: Trigger background DNS verification task
-    # from app.worker.tasks import verify_domain_task
-    # verify_domain_task.delay(str(domain.id))
+    # Perform actual DNS verification
+    try:
+        result = await dns_service.verify_domain(
+            domain=domain.domain,
+            record_type=domain.dns_record_type,
+            expected_value=domain.dns_record_value
+        )
+
+        if result["verified"]:
+            domain.status = CustomDomainStatus.ACTIVE
+            domain.dns_verified_at = datetime.utcnow()
+            domain.ssl_status = "pending"  # SSL will be provisioned by Cloudflare
+        else:
+            domain.status = CustomDomainStatus.PENDING_VALIDATION
+            # Store error message for user feedback
+
+    except Exception as e:
+        domain.status = CustomDomainStatus.FAILED
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"DNS verification failed: {str(e)}"
+        )
+
+    db.commit()
+    db.refresh(domain)
 
     return CustomDomainResponse.model_validate(domain)
 
@@ -665,3 +688,36 @@ async def check_subdomain_availability(
         subdomain=data.subdomain,
         available=True
     )
+
+
+@router.post("/{project_id}/domains/{domain_id}/check-propagation")
+async def check_domain_propagation(
+    project_id: UUID,
+    domain_id: UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user_required)
+):
+    """Check DNS propagation status across multiple DNS servers."""
+    from app.services.dns_verification import dns_service
+
+    project = get_project_or_404(project_id, user, db)
+
+    domain = db.query(CustomDomain).filter(
+        CustomDomain.id == domain_id,
+        CustomDomain.project_id == project_id
+    ).first()
+
+    if not domain:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Domain not found"
+        )
+
+    try:
+        result = await dns_service.check_domain_propagation(domain.domain)
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Propagation check failed: {str(e)}"
+        )
