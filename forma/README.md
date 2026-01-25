@@ -1,39 +1,58 @@
-# Formabase
+<p align="center">
+  <img src="images/forma-logo.png" alt="Forma Builder" width="150"/>
+</p>
 
-**Full-Stack React App Builder** - Build complete React applications visually with a no-code builder, data modeling, and instant deployment.
+<h1 align="center">Forma Builder</h1>
+
+<p align="center">
+  <strong>Visual React Application Builder</strong><br>
+  Build complete React applications with drag-and-drop, AI generation, and instant deployment.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-14-black" alt="Next.js"/>
+  <img src="https://img.shields.io/badge/React-18-blue" alt="React"/>
+  <img src="https://img.shields.io/badge/TypeScript-5.0+-blue" alt="TypeScript"/>
+  <img src="https://img.shields.io/badge/FastAPI-0.109+-teal" alt="FastAPI"/>
+  <img src="https://img.shields.io/badge/License-Proprietary-red" alt="License"/>
+</p>
+
+<p align="center">
+  <a href="#features">Features</a> &bull;
+  <a href="#quick-start">Quick Start</a> &bull;
+  <a href="#architecture">Architecture</a> &bull;
+  <a href="#api-reference">API Reference</a> &bull;
+  <a href="#component-library">Components</a>
+</p>
 
 ---
 
-## Overview
+## What is Forma Builder?
 
-Formabase started as Forma, a visual page builder similar to Elementor/Webflow. It has evolved into a **full-stack React application builder** — think Bubble or Retool, but generating real React code.
+Forma Builder is a **full-stack visual development platform** that lets you:
 
-Users can drag-and-drop components to build multi-page React websites, connect to data sources, design database schemas visually, and export production-ready code.
+1. **Design** - Drag-and-drop React components onto a visual canvas
+2. **Model** - Create database schemas with a visual data modeler
+3. **Connect** - Bind components to data with automatic API integration
+4. **Deploy** - Export to Next.js/Vite or deploy to Forma Runtime
+5. **Collaborate** - Real-time team editing with role-based access
 
-## Product Suite
-
-| Product | Description | License |
-|---------|-------------|---------|
-| **Runtime** | Standalone backend service for data management | MIT (Open Source) |
-| **Builder** | Visual app builder with 100+ components | Proprietary (SaaS) |
-| **CMS** | Content management for dynamic data | Proprietary (SaaS) |
+Think **Webflow + Retool + Supabase** in one integrated platform.
 
 ---
 
 ## Features
 
-### Visual Builder
+### Visual Canvas
 
 | Feature | Description |
 |---------|-------------|
-| **Drag-Drop Canvas** | Visual component placement with alignment guides |
-| **100+ Components** | Heroes, navbars, forms, cards, dashboards, and more |
-| **Click or Drag** | Both methods for adding components |
+| **Drag-Drop Building** | Place 100+ components with visual guides and snapping |
+| **Multi-Page Projects** | Create, rename, duplicate, reorder pages |
+| **Device Preview** | Toggle desktop, tablet, mobile viewports |
 | **Component Toolbar** | Move, align, duplicate, delete, lock, hide |
-| **Multi-Page Projects** | Create, rename, duplicate, delete, reorder pages |
-| **Device Preview** | Desktop, tablet, mobile viewport toggles |
-| **Undo/Redo** | Full history management |
-| **Zoom Controls** | Canvas zoom in/out |
+| **Undo/Redo** | Full history management with keyboard shortcuts |
+| **Zoom Controls** | Canvas zoom in/out for precision work |
 
 ### Styling & Design
 
@@ -45,6 +64,16 @@ Users can drag-and-drop components to build multi-page React websites, connect t
 | **3D Transforms** | RotateX/Y/Z, translate, scale, perspective |
 | **Theme System** | Design tokens, color palettes, font management |
 | **Style Presets** | Pre-built style combinations |
+
+### Data Modeling
+
+| Feature | Description |
+|---------|-------------|
+| **Visual Schema Designer** | Create collections, fields, relations graphically |
+| **Field Types** | 15+ types including relations, files, enums |
+| **One-Click Deploy** | Deploy backend to Forma Runtime instantly |
+| **Data Binding** | Connect components to API endpoints |
+| **Live Preview** | See real data in preview mode |
 
 ### AI-Powered
 
@@ -80,40 +109,6 @@ Users can drag-and-drop components to build multi-page React websites, connect t
 | **Purchase Flow** | Stripe integration for paid components |
 | **Creator Payouts** | Stripe Connect for creators |
 
-### Data & Integrations
-
-| Feature | Description |
-|---------|-------------|
-| **Data Binding** | Connect components to API endpoints |
-| **Code Injection** | Custom CSS/JS per component |
-| **SEO Metadata** | Per-page meta title, description, OG image |
-| **Performance Score** | Page metrics display |
-
----
-
-## Tech Stack
-
-### Frontend
-- **Next.js 14** with App Router
-- **React 18** with TypeScript
-- **Tailwind CSS 3.4** for styling
-- **Zustand** for state management
-- **Framer Motion** for animations
-- **Monaco Editor** for code editing
-- **Radix UI** for accessible primitives
-- **Lucide React** for icons
-
-### Backend
-- **Python 3.12** with FastAPI
-- **SQLAlchemy 2.0** ORM with SQLite/PostgreSQL
-- **Alembic** for migrations
-- **Anthropic Claude** for AI generation
-- **Stripe** for payments
-- **Celery** for background tasks
-- **WebSockets** for real-time collaboration
-- **SendGrid** for email
-- **JWT** authentication with bcrypt
-
 ---
 
 ## Quick Start
@@ -127,9 +122,9 @@ Users can drag-and-drop components to build multi-page React websites, connect t
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/formabase/forma.git
-cd forma
+# Clone the monorepo
+git clone https://github.com/axiondeeplabs/forma.git
+cd forma/forma
 
 # Backend setup
 cd backend
@@ -157,69 +152,41 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 # Terminal 2 - Frontend (port 3000)
 cd frontend
 npm run dev
+
+# Open http://localhost:3000
 ```
 
-### Running Tests
+### Running with Runtime (Full Stack)
 
 ```bash
-# Backend tests
-cd backend
+# Terminal 1 - Forma Runtime (port 8001)
+cd ../formabase/runtime
 source venv/bin/activate
-pytest
+MULTI_TENANT=true uvicorn forma_runtime.main:app --reload --port 8001
 
-# Frontend type checking
-cd frontend
-npm run build
+# Terminal 2 - Builder Backend (port 8000)
+cd forma/backend
+source venv/bin/activate
+RUNTIME_URL=http://localhost:8001 uvicorn app.main:app --reload --port 8000
+
+# Terminal 3 - Builder Frontend (port 3000)
+cd forma/frontend
+npm run dev
 ```
 
 ---
 
-## Project Structure
+## Architecture
 
 ```
 forma/
-├── backend/
-│   ├── app/
-│   │   ├── api/                 # API route handlers
-│   │   │   ├── auth.py          # Authentication endpoints
-│   │   │   ├── projects.py      # Project CRUD
-│   │   │   ├── pages.py         # Page management
-│   │   │   ├── components.py    # Component CRUD
-│   │   │   ├── ai.py            # Claude AI integration
-│   │   │   ├── teams.py         # Team collaboration
-│   │   │   ├── marketplace.py   # Component marketplace
-│   │   │   ├── templates.py     # Pre-built templates
-│   │   │   ├── github.py        # GitHub OAuth & sync
-│   │   │   ├── uploads.py       # File uploads
-│   │   │   ├── billing.py       # Stripe subscriptions
-│   │   │   └── websocket.py     # Real-time collaboration
-│   │   ├── core/                # Configuration
-│   │   ├── db/
-│   │   │   └── models.py        # SQLAlchemy models
-│   │   ├── schemas/             # Pydantic schemas
-│   │   ├── services/
-│   │   │   ├── forma_ai.py      # Claude API integration
-│   │   │   ├── export.py        # Next.js/Vite export
-│   │   │   ├── github_sync.py   # GitHub integration
-│   │   │   ├── email.py         # Email service
-│   │   │   ├── uploads.py       # File handling
-│   │   │   ├── billing.py       # Stripe service
-│   │   │   └── websocket.py     # WebSocket manager
-│   │   ├── templates/           # Export templates
-│   │   ├── worker/
-│   │   │   ├── celery_app.py    # Celery config
-│   │   │   └── tasks.py         # Background tasks
-│   │   └── main.py              # FastAPI application
-│   ├── tests/                   # Backend tests
-│   ├── requirements.txt
-│   └── .env.example
-├── frontend/
+├── frontend/                    # Next.js 14 Application
 │   ├── src/
-│   │   ├── app/                 # Next.js App Router pages
+│   │   ├── app/                 # App Router pages
 │   │   │   ├── page.tsx         # Landing page
 │   │   │   ├── auth/            # Login/Register
 │   │   │   ├── dashboard/       # User dashboard
-│   │   │   ├── builder/[id]/    # Main visual builder
+│   │   │   ├── builder/[id]/    # Visual builder
 │   │   │   ├── preview/[id]/    # Full-page preview
 │   │   │   ├── marketplace/     # Component marketplace
 │   │   │   └── settings/        # User settings
@@ -230,26 +197,163 @@ forma/
 │   │   │   ├── PagesSidebar.tsx       # Page management
 │   │   │   ├── ThemePanel.tsx         # Design tokens
 │   │   │   ├── DataBindingPanel.tsx   # API connections
-│   │   │   ├── CodeInjectionPanel.tsx # Custom CSS/JS
-│   │   │   ├── Transform3DPanel.tsx   # 3D transforms
-│   │   │   ├── TeamPanel.tsx          # Collaboration
+│   │   │   ├── modeler/               # Data modeling UI
+│   │   │   │   ├── DataModeler.tsx    # Schema designer
+│   │   │   │   └── CollectionPanel.tsx
 │   │   │   └── ...
-│   │   ├── stores/
+│   │   ├── stores/              # Zustand state
 │   │   │   ├── projectStore.ts  # Projects, pages, components
 │   │   │   ├── authStore.ts     # Authentication
+│   │   │   ├── schemaStore.ts   # Data model schema
 │   │   │   └── themeStore.ts    # Theme tokens
 │   │   ├── lib/
 │   │   │   └── api.ts           # API client
 │   │   └── types/
 │   │       ├── index.ts         # Core interfaces
 │   │       └── components.ts    # Component types
-│   ├── package.json
-│   └── .env.example
-├── docs/                        # Documentation
-├── CLAUDE.md                    # Session continuity
-├── FORMABASE_ROADMAP.md         # Technical roadmap
-└── README.md
+│   └── package.json
+│
+├── backend/                     # FastAPI Application
+│   ├── app/
+│   │   ├── api/                 # Route handlers
+│   │   │   ├── auth.py          # Authentication
+│   │   │   ├── projects.py      # Project CRUD
+│   │   │   ├── pages.py         # Page management
+│   │   │   ├── components.py    # Component CRUD
+│   │   │   ├── ai.py            # Claude AI integration
+│   │   │   ├── teams.py         # Team collaboration
+│   │   │   ├── marketplace.py   # Component marketplace
+│   │   │   └── github.py        # GitHub sync
+│   │   ├── services/
+│   │   │   ├── forma_ai.py      # Claude API wrapper
+│   │   │   ├── export.py        # Next.js/Vite export
+│   │   │   ├── github_sync.py   # GitHub integration
+│   │   │   └── runtime_client.py # Runtime API client
+│   │   ├── db/
+│   │   │   └── models.py        # SQLAlchemy models
+│   │   └── main.py              # FastAPI application
+│   └── requirements.txt
+│
+└── docs/                        # Documentation
 ```
+
+---
+
+## Tech Stack
+
+### Frontend
+
+| Technology | Purpose |
+|------------|---------|
+| **Next.js 14** | App Router, SSR, API routes |
+| **React 18** | Component framework |
+| **TypeScript** | Type safety |
+| **Tailwind CSS** | Utility styling |
+| **Zustand** | State management |
+| **Framer Motion** | Animations |
+| **Monaco Editor** | Code editing |
+| **Radix UI** | Accessible primitives |
+| **Lucide React** | Icons |
+
+### Backend
+
+| Technology | Purpose |
+|------------|---------|
+| **FastAPI** | REST API framework |
+| **SQLAlchemy 2.0** | ORM |
+| **Alembic** | Migrations |
+| **Anthropic Claude** | AI generation |
+| **Stripe** | Payments |
+| **Celery** | Background tasks |
+| **WebSockets** | Real-time collaboration |
+| **SendGrid** | Email |
+| **JWT + bcrypt** | Authentication |
+
+---
+
+## API Reference
+
+### Authentication
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/auth/register` | POST | Create account |
+| `/api/auth/login` | POST | Get access + refresh tokens |
+| `/api/auth/refresh` | POST | Refresh access token |
+| `/api/auth/logout` | POST | Invalidate tokens |
+| `/api/auth/me` | GET | Get current user |
+
+### Projects
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/projects` | GET | List user's projects |
+| `/api/projects` | POST | Create project |
+| `/api/projects/{id}` | GET | Get project details |
+| `/api/projects/{id}` | PUT | Update project |
+| `/api/projects/{id}` | DELETE | Delete project |
+| `/api/projects/{id}/schema` | PUT | Save data model schema |
+| `/api/projects/{id}/deploy-backend` | POST | Deploy to Runtime |
+
+### Pages
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/projects/{id}/pages` | GET | List pages |
+| `/api/projects/{id}/pages` | POST | Create page |
+| `/api/projects/{id}/pages/{page_id}` | PUT | Update page |
+| `/api/projects/{id}/pages/{page_id}` | DELETE | Delete page |
+| `/api/projects/{id}/pages/{page_id}/duplicate` | POST | Duplicate page |
+
+### AI
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/ai/generate` | POST | Generate component from prompt |
+| `/api/ai/edit` | POST | Edit existing component |
+| `/api/ai/explain` | POST | Explain component code |
+
+### Teams
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/projects/{id}/team` | GET | List team members |
+| `/api/projects/{id}/team/invite` | POST | Invite member |
+| `/api/projects/{id}/team/{member_id}` | DELETE | Remove member |
+
+### Export
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/projects/{id}/export/nextjs` | GET | Export as Next.js zip |
+| `/api/projects/{id}/export/vite` | GET | Export as Vite zip |
+
+---
+
+## Component Library
+
+100+ pre-built components organized by category:
+
+### Layout
+- Container, Grid, Flex, Spacer, Divider
+
+### Navigation
+- Navbar, Sidebar, Footer, Breadcrumb, Tabs
+
+### Content
+- Hero, Features, Pricing, Testimonials, FAQ, CTA, Stats
+
+### Data Display
+- Card, Table, List, Gallery, Avatar, Badge
+
+### Forms
+- Input, Textarea, Select, Checkbox, Radio, Switch, DatePicker
+
+### Feedback
+- Alert, Toast, Modal, Drawer, Popover, Tooltip
+
+### Data-Bound
+- DataTable, DataList, DataForm, DataGrid
 
 ---
 
@@ -266,6 +370,10 @@ SECRET_KEY=your-secret-key-min-32-chars
 
 # AI (required for component generation)
 ANTHROPIC_API_KEY=sk-ant-...
+
+# Runtime Connection
+RUNTIME_URL=http://localhost:8001
+RUNTIME_INTERNAL_KEY=shared-secret-key
 
 # Payments (optional)
 STRIPE_SECRET_KEY=sk_test_...
@@ -293,66 +401,6 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 ---
 
-## API Reference
-
-### Authentication
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/auth/register` | POST | Create account |
-| `/api/auth/login` | POST | Get access + refresh tokens |
-| `/api/auth/refresh` | POST | Refresh access token |
-| `/api/auth/logout` | POST | Invalidate tokens |
-| `/api/auth/me` | GET | Get current user |
-
-### Projects
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/projects` | GET | List user's projects |
-| `/api/projects` | POST | Create project (auto-creates home page) |
-| `/api/projects/{id}` | GET | Get project details |
-| `/api/projects/{id}` | PUT | Update project |
-| `/api/projects/{id}` | DELETE | Delete project |
-
-### Pages
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/projects/{id}/pages` | GET | List pages |
-| `/api/projects/{id}/pages` | POST | Create page |
-| `/api/projects/{id}/pages/{page_id}` | PUT | Update page (canvas, meta) |
-| `/api/projects/{id}/pages/{page_id}` | DELETE | Delete page |
-| `/api/projects/{id}/pages/{page_id}/duplicate` | POST | Duplicate page |
-
-### AI
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/ai/generate` | POST | Generate component from prompt |
-| `/api/ai/edit` | POST | Edit existing component |
-| `/api/ai/explain` | POST | Explain component code |
-
-### Teams
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/projects/{id}/team` | GET | List team members |
-| `/api/projects/{id}/team/invite` | POST | Invite member |
-| `/api/projects/{id}/team/{member_id}` | DELETE | Remove member |
-| `/api/projects/{id}/team/accept` | POST | Accept invite |
-
-### Marketplace
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/marketplace` | GET | Browse listings |
-| `/api/marketplace/{id}` | GET | Get listing details |
-| `/api/marketplace/publish` | POST | Publish component |
-| `/api/marketplace/{id}/purchase` | POST | Purchase component |
-
----
-
 ## Database Schema
 
 ### Core Models
@@ -366,6 +414,8 @@ User
 
 Project
 ├── id, user_id, name
+├── schema_json         # DataModeler schema
+├── runtime_api_url     # Deployed backend URL
 ├── design_system (JSON)
 └── settings (JSON)
 
@@ -373,7 +423,7 @@ Page
 ├── id, project_id, name, slug
 ├── canvas_components (JSON array)
 ├── is_homepage, position
-└── meta_title, meta_description, og_image
+└── meta_title, meta_description
 
 Component (AI-generated)
 ├── id, project_id, name
@@ -383,116 +433,64 @@ Component (AI-generated)
 ProjectMember
 ├── id, project_id, user_id
 └── role (owner/admin/editor/viewer)
-
-MarketplaceListing
-├── id, component_id, user_id
-├── title, description, category
-├── price, is_free
-└── downloads, rating
 ```
 
 ---
 
-## Component Categories
+## Design Decisions
 
-The component library includes 100+ pre-built components:
+1. **Canvas State as JSON**: Stored in `Page.canvas_components`, not separate records. Simplifies undo/redo and duplication.
 
-- **Heroes** - Full-width landing sections
-- **Navbars** - Navigation headers
-- **Features** - Feature grids and lists
-- **Pricing** - Pricing tables and cards
-- **Testimonials** - Customer quotes
-- **FAQ** - Accordion FAQ sections
-- **CTA** - Call-to-action blocks
-- **Footers** - Page footers
-- **Cards** - Content cards
-- **Forms** - Input forms
-- **Stats** - Statistics displays
-- **Teams** - Team member grids
-- **Logos** - Logo clouds
-- **Galleries** - Image galleries
-- **Sidebars** - Navigation sidebars
-- **Dashboards** - Dashboard widgets
-- **Grids** - Layout grids
-- **Sections** - Generic sections
-- **Dividers** - Visual separators
-- **Spacers** - Vertical spacing
+2. **Component Library Inline**: Pre-built components defined in `ComponentLibrary.tsx`. Preview renderers in `preview/[id]/page.tsx`.
 
----
-
-## Architecture Decisions
-
-1. **Canvas State**: Stored as JSON in `Page.canvas_components`, not as separate records. Simplifies undo/redo and page duplication.
-
-2. **Component Library**: Pre-built components defined inline in `ComponentLibrary.tsx`. Preview renderers separate in `preview/[id]/page.tsx`.
-
-3. **Authentication**: JWT with access (30min) + refresh (7 days) tokens. Stored in localStorage via Zustand persist.
+3. **JWT Authentication**: Access (30min) + refresh (7 days) tokens. Stored in localStorage via Zustand persist.
 
 4. **AI Components**: Generated code stored in `Component.code`. Intent history tracked in `Intention` table.
 
-5. **Multi-page**: Each Page has its own `canvas_components` JSON. Auto-creates "Home" page on project creation.
+5. **Preview via localStorage**: Canvas state passed from builder to preview tab using `forma-preview-{projectId}` key.
 
-6. **Preview**: Uses localStorage to pass canvas state from builder to preview tab. Key: `forma-preview-{projectId}`.
+6. **Runtime Integration**: Builder saves schema to project, then calls `/deploy-backend` which registers with Runtime.
 
 ---
 
-## Known Gotchas
+## Gotchas
 
 1. **Drag-drop icons**: ComponentLibrary items have React icons that can't be serialized. Only pass `{ id, name }` to drag handlers.
 
 2. **Animation defaults**: VisualCanvas animation objects need full defaults or TypeScript complains.
 
-3. **API status codes**: POST returns 201, DELETE returns 204. Tests must expect these.
+3. **API status codes**: POST returns 201, DELETE returns 204.
 
-4. **CORS**: Backend allows `http://localhost:3000`. Change in `backend/app/core/config.py` for production.
+4. **CORS**: Backend allows `http://localhost:3000`. Change in config for production.
 
 5. **Preview data format**: Can be legacy (array) or new format (object with pages). Preview page handles both.
 
 ---
 
-## Roadmap
-
-### Phase 1-4 (Complete)
-- Visual canvas with drag-drop
-- 100+ component library
-- Multi-page projects
-- AI component generation
-- Team collaboration
-- Marketplace
-- Export to Next.js/Vite
-
-### Phase 5-7 (In Progress)
-- Data model designer UI
-- Dynamic components (DataList, DataForm)
-- Connection to Runtime API
-- Database schema management
-- Real-time data preview
-
-### Future
-- Custom component creation
-- Plugin system
-- Self-hosted deployment
-- Mobile app builder
-- A/B testing
-- Analytics integration
-
----
-
-## Contributing
-
-This is a private project. For internal team members, see `CLAUDE.md` for development guidelines and session continuity.
-
----
-
 ## License
 
-- **Runtime**: MIT License (Open Source)
-- **Builder & CMS**: Proprietary (All Rights Reserved)
+Proprietary - All Rights Reserved
+
+The Forma Builder is proprietary software. For licensing inquiries, contact Axion Deep Labs.
 
 ---
 
-## Links
+## About
 
-- **GitHub Organization**: [github.com/formabase](https://github.com/formabase)
-- **Documentation**: See `FORMABASE_ROADMAP.md` for technical details
-- **Project Page**: [axiondeep.com/projects/forma](https://www.axiondeep.com/projects/forma)
+<p align="center">
+  <strong>Axion Deep Labs</strong><br>
+  Building intelligent infrastructure for modern applications.
+</p>
+
+<p align="center">
+  <a href="https://axiondeep.com">Website</a> &bull;
+  <a href="https://github.com/axiondeeplabs">GitHub</a> &bull;
+  <a href="https://discord.gg/axiondeep">Discord</a> &bull;
+  <a href="https://twitter.com/axiondeeplabs">Twitter</a>
+</p>
+
+---
+
+<p align="center">
+  <sub>Forma Builder is part of the Forma platform by Axion Deep Labs.</sub>
+</p>

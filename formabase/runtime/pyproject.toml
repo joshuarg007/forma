@@ -5,7 +5,7 @@ description = "Open-source backend runtime for React apps. Define your schema, g
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "Formabase", email = "hello@formabase.dev"}
+    {name = "Axion Deep Labs", email = "hello@axiondeep.com"}
 ]
 requires-python = ">=3.11"
 keywords = ["api", "backend", "fastapi", "graphql", "rest", "schema", "runtime"]
@@ -40,6 +40,7 @@ dependencies = [
     # Auth
     "python-jose[cryptography]>=3.3.0",
     "passlib[bcrypt]>=1.7.4",
+    "bcrypt>=4.0.0,<4.1.0",  # Pinned for passlib compatibility
     "python-multipart>=0.0.6",
 
     # GraphQL
@@ -56,6 +57,10 @@ dependencies = [
     # Utils
     "httpx>=0.26.0",
     "orjson>=3.9.10",
+    "structlog>=24.1.0",
+
+    # Observability
+    "prometheus-client>=0.19.0",
 
     # Dev server
     "watchdog>=3.0.0",
@@ -72,16 +77,17 @@ dev = [
     "httpx>=0.26.0",
     "ruff>=0.1.11",
     "mypy>=1.8.0",
+    "pre-commit>=3.6.0",
 ]
 
 [project.scripts]
 forma-runtime = "forma_runtime.cli:app"
 
 [project.urls]
-Homepage = "https://formabase.dev"
-Documentation = "https://docs.formabase.dev"
-Repository = "https://github.com/formabase/runtime"
-Issues = "https://github.com/formabase/runtime/issues"
+Homepage = "https://axiondeep.com/forma"
+Documentation = "https://docs.axiondeep.com/forma"
+Repository = "https://github.com/axiondeeplabs/forma"
+Issues = "https://github.com/axiondeeplabs/forma/issues"
 
 [build-system]
 requires = ["hatchling"]

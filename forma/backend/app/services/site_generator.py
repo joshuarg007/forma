@@ -77,6 +77,235 @@ class StaticSiteGenerator:
 })();
 </script>'''
 
+    # E-commerce JavaScript (cart, checkout)
+    ECOMMERCE_SCRIPT = '''
+<script>
+(function() {
+  // Forma E-commerce Handler
+  const FORMA_API = '{api_url}';
+  const PROJECT_ID = '{project_id}';
+  const CART_KEY = 'forma_cart_' + PROJECT_ID;
+
+  // Cart state
+  let cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
+
+  // Update cart display
+  function updateCartDisplay() {
+    const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+    document.querySelectorAll('[data-cart-count]').forEach(el => {
+      el.textContent = cartCount;
+      el.style.display = cartCount > 0 ? 'flex' : 'none';
+    });
+
+    // Update mini cart
+    const miniCart = document.querySelector('[data-mini-cart]');
+    if (miniCart) {
+      if (cart.length === 0) {
+        miniCart.innerHTML = '<p class="text-gray-500 text-center py-4">Your cart is empty</p>';
+      } else {
+        let total = 0;
+        miniCart.innerHTML = cart.map(item => {
+          total += item.price * item.quantity;
+          return `
+            <div class="flex items-center gap-3 py-3 border-b border-gray-100">
+              ${item.image ? `<img src="${item.image}" class="w-12 h-12 object-cover rounded" />` : ''}
+              <div class="flex-1">
+                <div class="font-medium text-sm">${item.name}</div>
+                <div class="text-gray-500 text-xs">${item.variant || ''}</div>
+                <div class="text-gray-900 text-sm">$${(item.price / 100).toFixed(2)} × ${item.quantity}</div>
+              </div>
+              <button onclick="formaCart.remove('${item.id}')" class="text-gray-400 hover:text-red-500">×</button>
+            </div>
+          `;
+        }).join('') + `
+          <div class="pt-4 mt-2">
+            <div class="flex justify-between font-semibold mb-3">
+              <span>Total</span>
+              <span>$${(total / 100).toFixed(2)}</span>
+            </div>
+            <button onclick="formaCart.checkout()" class="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">Checkout</button>
+          </div>
+        `;
+      }
+    }
+
+    // Update full cart page
+    const cartPage = document.querySelector('[data-cart-page]');
+    if (cartPage) {
+      renderCartPage(cartPage);
+    }
+  }
+
+  function renderCartPage(container) {
+    if (cart.length === 0) {
+      container.innerHTML = `
+        <div class="text-center py-16">
+          <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+          <h2 class="text-xl font-semibold text-gray-900 mb-2">Your cart is empty</h2>
+          <p class="text-gray-500 mb-6">Add some products to get started</p>
+          <a href="/" class="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Continue Shopping</a>
+        </div>
+      `;
+      return;
+    }
+
+    let total = 0;
+    container.innerHTML = `
+      <div class="grid lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2 space-y-4">
+          ${cart.map(item => {
+            total += item.price * item.quantity;
+            return `
+              <div class="flex gap-4 p-4 bg-white rounded-xl border border-gray-200">
+                ${item.image ? `<img src="${item.image}" class="w-24 h-24 object-cover rounded-lg" />` : '<div class="w-24 h-24 bg-gray-100 rounded-lg"></div>'}
+                <div class="flex-1">
+                  <h3 class="font-semibold text-gray-900">${item.name}</h3>
+                  <p class="text-gray-500 text-sm">${item.variant || ''}</p>
+                  <div class="text-indigo-600 font-medium mt-1">$${(item.price / 100).toFixed(2)}</div>
+                </div>
+                <div class="flex flex-col items-end gap-2">
+                  <button onclick="formaCart.remove('${item.id}')" class="text-gray-400 hover:text-red-500 text-sm">Remove</button>
+                  <div class="flex items-center gap-2 bg-gray-100 rounded-lg">
+                    <button onclick="formaCart.updateQty('${item.id}', ${item.quantity - 1})" class="w-8 h-8 flex items-center justify-center hover:bg-gray-200 rounded-l-lg">−</button>
+                    <span class="w-8 text-center">${item.quantity}</span>
+                    <button onclick="formaCart.updateQty('${item.id}', ${item.quantity + 1})" class="w-8 h-8 flex items-center justify-center hover:bg-gray-200 rounded-r-lg">+</button>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <div class="lg:col-span-1">
+          <div class="bg-white rounded-xl border border-gray-200 p-6 sticky top-6">
+            <h3 class="font-semibold text-gray-900 mb-4">Order Summary</h3>
+            <div class="space-y-3 text-sm">
+              <div class="flex justify-between"><span class="text-gray-500">Subtotal</span><span>$${(total / 100).toFixed(2)}</span></div>
+              <div class="flex justify-between"><span class="text-gray-500">Shipping</span><span>Calculated at checkout</span></div>
+            </div>
+            <div class="border-t border-gray-200 mt-4 pt-4 flex justify-between font-semibold text-lg">
+              <span>Total</span>
+              <span>$${(total / 100).toFixed(2)}</span>
+            </div>
+            <button onclick="formaCart.checkout()" class="w-full mt-6 py-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition">Proceed to Checkout</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Global cart API
+  window.formaCart = {
+    add: function(productId, name, price, quantity, variant, image) {
+      const existing = cart.find(item => item.id === productId && item.variant === variant);
+      if (existing) {
+        existing.quantity += quantity || 1;
+      } else {
+        cart.push({ id: productId, name, price, quantity: quantity || 1, variant, image });
+      }
+      localStorage.setItem(CART_KEY, JSON.stringify(cart));
+      updateCartDisplay();
+      // Track event
+      if (window.formaTrack) window.formaTrack('add_to_cart', 'ecommerce', price / 100, { product_id: productId });
+    },
+
+    remove: function(productId) {
+      cart = cart.filter(item => item.id !== productId);
+      localStorage.setItem(CART_KEY, JSON.stringify(cart));
+      updateCartDisplay();
+    },
+
+    updateQty: function(productId, quantity) {
+      if (quantity <= 0) {
+        this.remove(productId);
+        return;
+      }
+      const item = cart.find(item => item.id === productId);
+      if (item) {
+        item.quantity = quantity;
+        localStorage.setItem(CART_KEY, JSON.stringify(cart));
+        updateCartDisplay();
+      }
+    },
+
+    clear: function() {
+      cart = [];
+      localStorage.removeItem(CART_KEY);
+      updateCartDisplay();
+    },
+
+    getItems: function() {
+      return cart;
+    },
+
+    getTotal: function() {
+      return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    },
+
+    checkout: async function(email, name) {
+      if (cart.length === 0) {
+        alert('Your cart is empty');
+        return;
+      }
+
+      // Prompt for email if not provided
+      if (!email) {
+        email = prompt('Enter your email for checkout:');
+        if (!email) return;
+      }
+
+      try {
+        const response = await fetch(FORMA_API + '/api/store/' + PROJECT_ID + '/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: cart.map(item => ({
+              product_id: item.id,
+              quantity: item.quantity,
+              variant_name: item.variant
+            })),
+            customer_email: email,
+            customer_name: name,
+            success_url: window.location.origin + '/order-success',
+            cancel_url: window.location.origin + '/cart'
+          })
+        });
+
+        const result = await response.json();
+        if (result.checkout_url) {
+          // Track event
+          if (window.formaTrack) window.formaTrack('begin_checkout', 'ecommerce', this.getTotal() / 100);
+          // Clear cart and redirect
+          this.clear();
+          window.location.href = result.checkout_url;
+        } else {
+          throw new Error(result.detail || 'Checkout failed');
+        }
+      } catch (error) {
+        console.error('Checkout error:', error);
+        alert('Checkout failed: ' + error.message);
+      }
+    }
+  };
+
+  // Add to cart buttons
+  document.querySelectorAll('[data-add-to-cart]').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const productId = this.dataset.addToCart;
+      const name = this.dataset.productName;
+      const price = parseInt(this.dataset.productPrice);
+      const variant = this.dataset.productVariant;
+      const image = this.dataset.productImage;
+      window.formaCart.add(productId, name, price, 1, variant, image);
+    });
+  });
+
+  // Initialize display
+  updateCartDisplay();
+})();
+</script>'''
+
     # Form handling JavaScript (injected into pages with forms)
     FORM_HANDLER_SCRIPT = '''
 <script>
@@ -359,6 +588,178 @@ class StaticSiteGenerator:
     </form>
   </div>
 </section>''',
+
+        # E-commerce components
+        'product-grid': '''<section class="py-16 px-6 bg-gray-50">
+  <div class="max-w-6xl mx-auto">
+    <h2 class="text-3xl font-bold text-gray-900 mb-2">{title}</h2>
+    <p class="text-gray-600 mb-8">{subtitle}</p>
+    <div class="grid md:grid-cols-3 lg:grid-cols-4 gap-6" data-product-grid>
+      {product_cards}
+    </div>
+  </div>
+</section>''',
+
+        'card-product': '''<div class="bg-white rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition group">
+  <a href="{product_url}" class="block">
+    <div class="aspect-square bg-gray-100 overflow-hidden">
+      <img src="{image_url}" alt="{name}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+    </div>
+    <div class="p-4">
+      <h3 class="font-semibold text-gray-900 mb-1">{name}</h3>
+      <p class="text-gray-500 text-sm line-clamp-2 mb-3">{description}</p>
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-lg font-bold text-gray-900">${price}</span>
+          {compare_price}
+        </div>
+        <button
+          data-add-to-cart="{product_id}"
+          data-product-name="{name}"
+          data-product-price="{price_cents}"
+          data-product-image="{image_url}"
+          class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition"
+        >Add</button>
+      </div>
+    </div>
+  </a>
+</div>''',
+
+        'product-detail': '''<section class="py-12 px-6 bg-white">
+  <div class="max-w-6xl mx-auto">
+    <div class="grid md:grid-cols-2 gap-12">
+      <div class="space-y-4">
+        <div class="aspect-square bg-gray-100 rounded-2xl overflow-hidden">
+          <img src="{image_url}" alt="{name}" class="w-full h-full object-cover" id="main-image" />
+        </div>
+        <div class="grid grid-cols-4 gap-2" id="image-thumbnails">
+          {image_thumbnails}
+        </div>
+      </div>
+      <div>
+        <nav class="text-sm text-gray-500 mb-4">{breadcrumb}</nav>
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">{name}</h1>
+        <div class="flex items-center gap-4 mb-6">
+          <span class="text-3xl font-bold text-gray-900">${price}</span>
+          {compare_price}
+          {badge}
+        </div>
+        <p class="text-gray-600 mb-6">{description}</p>
+        {variant_selector}
+        <div class="flex items-center gap-4 mb-8">
+          <div class="flex items-center bg-gray-100 rounded-lg">
+            <button onclick="updateQty(-1)" class="w-10 h-10 flex items-center justify-center hover:bg-gray-200 rounded-l-lg text-lg">−</button>
+            <input type="number" id="quantity" value="1" min="1" class="w-16 text-center bg-transparent focus:outline-none" />
+            <button onclick="updateQty(1)" class="w-10 h-10 flex items-center justify-center hover:bg-gray-200 rounded-r-lg text-lg">+</button>
+          </div>
+          <button
+            id="add-to-cart-btn"
+            data-add-to-cart="{product_id}"
+            data-product-name="{name}"
+            data-product-price="{price_cents}"
+            data-product-image="{image_url}"
+            class="flex-1 py-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition flex items-center justify-center gap-2"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            Add to Cart
+          </button>
+        </div>
+        <div class="prose text-gray-600">{long_description}</div>
+      </div>
+    </div>
+  </div>
+</section>''',
+
+        'cart': '''<section class="py-12 px-6 bg-gray-50 min-h-screen">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">Shopping Cart</h1>
+    <div data-cart-page></div>
+  </div>
+</section>''',
+
+        'cart-mini': '''<div class="relative">
+  <button id="cart-toggle" class="p-2 text-gray-600 hover:text-gray-900 relative">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+    <span data-cart-count class="absolute -top-1 -right-1 w-5 h-5 bg-indigo-600 text-white text-xs rounded-full flex items-center justify-center hidden">0</span>
+  </button>
+  <div id="cart-dropdown" class="hidden absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 p-4 z-50">
+    <h3 class="font-semibold text-gray-900 mb-3">Your Cart</h3>
+    <div data-mini-cart class="max-h-80 overflow-y-auto"></div>
+  </div>
+</div>
+<script>
+document.getElementById('cart-toggle').addEventListener('click', function() {
+  document.getElementById('cart-dropdown').classList.toggle('hidden');
+});
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#cart-toggle') && !e.target.closest('#cart-dropdown')) {
+    document.getElementById('cart-dropdown').classList.add('hidden');
+  }
+});
+</script>''',
+
+        'checkout': '''<section class="py-12 px-6 bg-gray-50 min-h-screen">
+  <div class="max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">Checkout</h1>
+    <form id="checkout-form" class="space-y-8">
+      <div class="bg-white p-6 rounded-xl border border-gray-200">
+        <h2 class="font-semibold text-gray-900 mb-4">Contact Information</h2>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+            <input type="email" name="email" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="your@email.com" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Name</label>
+            <input type="text" name="name" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="Full name" />
+          </div>
+        </div>
+      </div>
+      <div class="bg-white p-6 rounded-xl border border-gray-200">
+        <h2 class="font-semibold text-gray-900 mb-4">Shipping Address</h2>
+        <div class="space-y-4">
+          <input type="text" name="address1" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="Street address" />
+          <input type="text" name="address2" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="Apartment, suite, etc. (optional)" />
+          <div class="grid grid-cols-2 gap-4">
+            <input type="text" name="city" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="City" />
+            <input type="text" name="state" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="State" />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <input type="text" name="postal" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="ZIP / Postal code" />
+            <select name="country" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition">
+              <option value="US">United States</option>
+              <option value="CA">Canada</option>
+              <option value="GB">United Kingdom</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <button type="submit" class="w-full py-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition">Continue to Payment</button>
+    </form>
+  </div>
+</section>
+<script>
+document.getElementById('checkout-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const formData = new FormData(this);
+  const email = formData.get('email');
+  const name = formData.get('name');
+  window.formaCart.checkout(email, name);
+});
+</script>''',
+
+        'order-summary': '''<div class="bg-white p-6 rounded-xl border border-gray-200">
+  <h2 class="font-semibold text-gray-900 mb-4">Order Summary</h2>
+  <div data-mini-cart class="space-y-3"></div>
+  <div class="border-t border-gray-200 mt-4 pt-4 space-y-2 text-sm">
+    <div class="flex justify-between"><span class="text-gray-500">Subtotal</span><span data-cart-subtotal>$0.00</span></div>
+    <div class="flex justify-between"><span class="text-gray-500">Shipping</span><span>Calculated at checkout</span></div>
+  </div>
+  <div class="border-t border-gray-200 mt-4 pt-4 flex justify-between font-semibold text-lg">
+    <span>Total</span>
+    <span data-cart-total>$0.00</span>
+  </div>
+</div>''',
     }
 
     # Default props for components
@@ -514,7 +915,62 @@ class StaticSiteGenerator:
             'subtitle': 'Get started for free',
             'form_slug': 'register',
             'submit_text': 'Create Account'
-        }
+        },
+        'product-grid': {
+            'title': 'Our Products',
+            'subtitle': 'Browse our collection',
+            'product_cards': '''
+      <div class="bg-white rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition group">
+        <div class="aspect-square bg-gray-100"></div>
+        <div class="p-4">
+          <h3 class="font-semibold text-gray-900 mb-1">Product Name</h3>
+          <p class="text-gray-500 text-sm mb-3">Product description</p>
+          <div class="flex items-center justify-between">
+            <span class="text-lg font-bold text-gray-900">$29.99</span>
+            <button class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700">Add</button>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition group">
+        <div class="aspect-square bg-gray-100"></div>
+        <div class="p-4">
+          <h3 class="font-semibold text-gray-900 mb-1">Another Product</h3>
+          <p class="text-gray-500 text-sm mb-3">Another description</p>
+          <div class="flex items-center justify-between">
+            <span class="text-lg font-bold text-gray-900">$49.99</span>
+            <button class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700">Add</button>
+          </div>
+        </div>
+      </div>'''
+        },
+        'card-product': {
+            'name': 'Product Name',
+            'description': 'Product description',
+            'price': '29.99',
+            'price_cents': '2999',
+            'image_url': 'https://placehold.co/400',
+            'product_url': '#',
+            'product_id': '',
+            'compare_price': ''
+        },
+        'product-detail': {
+            'name': 'Product Name',
+            'description': 'This is an amazing product with great features.',
+            'long_description': '<p>Detailed product description goes here.</p>',
+            'price': '99.99',
+            'price_cents': '9999',
+            'image_url': 'https://placehold.co/600',
+            'product_id': '',
+            'breadcrumb': '<a href="/" class="hover:text-gray-900">Home</a> / <a href="/products" class="hover:text-gray-900">Products</a> / <span class="text-gray-900">Product</span>',
+            'compare_price': '',
+            'badge': '',
+            'image_thumbnails': '',
+            'variant_selector': ''
+        },
+        'cart': {},
+        'cart-mini': {},
+        'checkout': {},
+        'order-summary': {}
     }
 
     def __init__(self, project_name: str = "My Site", project_id: str = None, api_url: str = None, analytics_enabled: bool = True):
@@ -594,6 +1050,13 @@ class StaticSiteGenerator:
             for c in components
         )
 
+        # Check if page has e-commerce components
+        ecommerce_types = ['product-grid', 'product-detail', 'card-product', 'cart', 'cart-mini', 'checkout', 'order-summary']
+        has_ecommerce = any(
+            c.get('type', '') in ecommerce_types
+            for c in components
+        )
+
         # Generate scripts
         scripts = []
 
@@ -607,6 +1070,13 @@ class StaticSiteGenerator:
         # Form handler script (if page has forms)
         if has_forms and self.project_id:
             scripts.append(self.FORM_HANDLER_SCRIPT.format(
+                api_url=self.api_url,
+                project_id=self.project_id
+            ))
+
+        # E-commerce script (if page has e-commerce components)
+        if has_ecommerce and self.project_id:
+            scripts.append(self.ECOMMERCE_SCRIPT.format(
                 api_url=self.api_url,
                 project_id=self.project_id
             ))

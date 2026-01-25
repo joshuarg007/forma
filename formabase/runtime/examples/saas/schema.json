@@ -1,0 +1,113 @@
+{
+  "version": "1.0",
+  "name": "saas-example",
+  "description": "A SaaS application with organizations, projects, and team members",
+  "collections": {
+    "user": {
+      "auth": true,
+      "timestamps": true,
+      "fields": {
+        "email": { "type": "email", "required": true, "unique": true },
+        "password_hash": { "type": "text", "required": true },
+        "name": { "type": "text", "required": true },
+        "avatar": { "type": "file" },
+        "role": { "type": "enum", "options": ["superadmin", "user"], "default": "user" },
+        "email_verified": { "type": "boolean", "default": false },
+        "last_login": { "type": "datetime" }
+      }
+    },
+    "organization": {
+      "timestamps": true,
+      "soft_delete": true,
+      "fields": {
+        "name": { "type": "text", "required": true },
+        "slug": { "type": "text", "unique": true },
+        "logo": { "type": "file" },
+        "plan": { "type": "enum", "options": ["free", "starter", "pro", "enterprise"], "default": "free" },
+        "billing_email": { "type": "email" },
+        "stripe_customer_id": { "type": "text" },
+        "subscription_status": { "type": "enum", "options": ["active", "past_due", "canceled", "trialing"], "default": "trialing" },
+        "trial_ends_at": { "type": "datetime" },
+        "settings": { "type": "json" }
+      },
+      "hooks": {
+        "beforeCreate": ["slugify:name"]
+      }
+    },
+    "organization_member": {
+      "timestamps": true,
+      "fields": {
+        "organization": { "type": "relation", "target": "organization", "relation": "many-to-one", "required": true },
+        "user": { "type": "relation", "target": "user", "relation": "many-to-one", "required": true },
+        "role": { "type": "enum", "options": ["owner", "admin", "member", "viewer"], "default": "member" },
+        "invited_by": { "type": "relation", "target": "user", "relation": "many-to-one" },
+        "accepted_at": { "type": "datetime" }
+      }
+    },
+    "project": {
+      "timestamps": true,
+      "soft_delete": true,
+      "fields": {
+        "name": { "type": "text", "required": true },
+        "slug": { "type": "text", "unique": true },
+        "description": { "type": "text" },
+        "organization": { "type": "relation", "target": "organization", "relation": "many-to-one", "required": true },
+        "status": { "type": "enum", "options": ["active", "archived", "draft"], "default": "active" },
+        "visibility": { "type": "enum", "options": ["private", "team", "public"], "default": "team" },
+        "settings": { "type": "json" }
+      },
+      "hooks": {
+        "beforeCreate": ["slugify:name"]
+      },
+      "api": {
+        "default_limit": 20,
+        "max_limit": 100
+      }
+    },
+    "api_key": {
+      "timestamps": true,
+      "fields": {
+        "name": { "type": "text", "required": true },
+        "key_hash": { "type": "text", "required": true },
+        "key_prefix": { "type": "text", "required": true },
+        "organization": { "type": "relation", "target": "organization", "relation": "many-to-one", "required": true },
+        "created_by": { "type": "relation", "target": "user", "relation": "many-to-one", "required": true },
+        "scopes": { "type": "json" },
+        "last_used_at": { "type": "datetime" },
+        "expires_at": { "type": "datetime" },
+        "revoked_at": { "type": "datetime" }
+      }
+    },
+    "audit_log": {
+      "timestamps": true,
+      "fields": {
+        "action": { "type": "text", "required": true },
+        "resource_type": { "type": "text", "required": true },
+        "resource_id": { "type": "text" },
+        "organization": { "type": "relation", "target": "organization", "relation": "many-to-one" },
+        "user": { "type": "relation", "target": "user", "relation": "many-to-one" },
+        "ip_address": { "type": "text" },
+        "user_agent": { "type": "text" },
+        "metadata": { "type": "json" }
+      },
+      "permissions": {
+        "read": "authenticated",
+        "create": "admin",
+        "update": "none",
+        "delete": "none"
+      }
+    },
+    "invitation": {
+      "timestamps": true,
+      "fields": {
+        "email": { "type": "email", "required": true },
+        "organization": { "type": "relation", "target": "organization", "relation": "many-to-one", "required": true },
+        "role": { "type": "enum", "options": ["admin", "member", "viewer"], "default": "member" },
+        "invited_by": { "type": "relation", "target": "user", "relation": "many-to-one", "required": true },
+        "token": { "type": "text", "required": true, "unique": true },
+        "expires_at": { "type": "datetime", "required": true },
+        "accepted_at": { "type": "datetime" }
+      }
+    }
+  }
+}

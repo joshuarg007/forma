@@ -1,0 +1,182 @@
+{
+  "version": "1.0",
+  "name": "ecommerce-example",
+  "description": "An e-commerce application with products, orders, and customers",
+  "collections": {
+    "user": {
+      "auth": true,
+      "timestamps": true,
+      "fields": {
+        "email": { "type": "email", "required": true, "unique": true },
+        "password_hash": { "type": "text", "required": true },
+        "name": { "type": "text", "required": true },
+        "phone": { "type": "text" },
+        "role": { "type": "enum", "options": ["admin", "staff", "customer"], "default": "customer" }
+      }
+    },
+    "category": {
+      "fields": {
+        "name": { "type": "text", "required": true },
+        "slug": { "type": "text", "unique": true },
+        "description": { "type": "text" },
+        "image": { "type": "file" },
+        "parent": { "type": "relation", "target": "category", "relation": "many-to-one" },
+        "sort_order": { "type": "integer", "default": 0 }
+      },
+      "hooks": {
+        "beforeCreate": ["slugify:name"]
+      }
+    },
+    "product": {
+      "timestamps": true,
+      "soft_delete": true,
+      "fields": {
+        "name": { "type": "text", "required": true },
+        "slug": { "type": "text", "unique": true },
+        "description": { "type": "richtext" },
+        "short_description": { "type": "text", "max_length": 500 },
+        "sku": { "type": "text", "unique": true },
+        "price": { "type": "integer", "required": true },
+        "compare_at_price": { "type": "integer" },
+        "cost": { "type": "integer" },
+        "category": { "type": "relation", "target": "category", "relation": "many-to-one" },
+        "images": { "type": "json" },
+        "status": { "type": "enum", "options": ["draft", "active", "archived"], "default": "draft" },
+        "inventory_quantity": { "type": "integer", "default": 0 },
+        "track_inventory": { "type": "boolean", "default": true },
+        "weight": { "type": "float" },
+        "featured": { "type": "boolean", "default": false },
+        "metadata": { "type": "json" }
+      },
+      "hooks": {
+        "beforeCreate": ["slugify:name"]
+      },
+      "api": {
+        "default_limit": 20,
+        "max_limit": 100,
+        "search_fields": ["name", "description", "sku"]
+      }
+    },
+    "product_variant": {
+      "timestamps": true,
+      "fields": {
+        "product": { "type": "relation", "target": "product", "relation": "many-to-one", "required": true },
+        "name": { "type": "text", "required": true },
+        "sku": { "type": "text", "unique": true },
+        "price": { "type": "integer" },
+        "inventory_quantity": { "type": "integer", "default": 0 },
+        "options": { "type": "json" }
+      }
+    },
+    "address": {
+      "timestamps": true,
+      "fields": {
+        "user": { "type": "relation", "target": "user", "relation": "many-to-one", "required": true },
+        "name": { "type": "text", "required": true },
+        "company": { "type": "text" },
+        "address1": { "type": "text", "required": true },
+        "address2": { "type": "text" },
+        "city": { "type": "text", "required": true },
+        "state": { "type": "text" },
+        "postal_code": { "type": "text", "required": true },
+        "country": { "type": "text", "required": true },
+        "phone": { "type": "text" },
+        "is_default": { "type": "boolean", "default": false }
+      },
+      "permissions": {
+        "read": "owner",
+        "create": "authenticated",
+        "update": "owner",
+        "delete": "owner"
+      }
+    },
+    "order": {
+      "timestamps": true,
+      "soft_delete": true,
+      "fields": {
+        "order_number": { "type": "text", "unique": true, "required": true },
+        "customer": { "type": "relation", "target": "user", "relation": "many-to-one", "required": true },
+        "email": { "type": "email", "required": true },
+        "shipping_address": { "type": "json", "required": true },
+        "billing_address": { "type": "json" },
+        "status": { "type": "enum", "options": ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "refunded"], "default": "pending" },
+        "payment_status": { "type": "enum", "options": ["pending", "paid", "failed", "refunded"], "default": "pending" },
+        "subtotal": { "type": "integer", "required": true },
+        "shipping_cost": { "type": "integer", "default": 0 },
+        "tax": { "type": "integer", "default": 0 },
+        "discount": { "type": "integer", "default": 0 },
+        "total": { "type": "integer", "required": true },
+        "currency": { "type": "text", "default": "USD" },
+        "stripe_payment_intent": { "type": "text" },
+        "notes": { "type": "text" },
+        "metadata": { "type": "json" }
+      },
+      "permissions": {
+        "read": "owner",
+        "create": "authenticated",
+        "update": "admin",
+        "delete": "admin"
+      }
+    },
+    "order_item": {
+      "timestamps": true,
+      "fields": {
+        "order": { "type": "relation", "target": "order", "relation": "many-to-one", "required": true },
+        "product": { "type": "relation", "target": "product", "relation": "many-to-one", "required": true },
+        "variant": { "type": "relation", "target": "product_variant", "relation": "many-to-one" },
+        "name": { "type": "text", "required": true },
+        "sku": { "type": "text" },
+        "quantity": { "type": "integer", "required": true },
+        "unit_price": { "type": "integer", "required": true },
+        "total": { "type": "integer", "required": true }
+      }
+    },
+    "cart": {
+      "timestamps": true,
+      "fields": {
+        "user": { "type": "relation", "target": "user", "relation": "many-to-one" },
+        "session_id": { "type": "text" },
+        "items": { "type": "json" },
+        "expires_at": { "type": "datetime" }
+      }
+    },
+    "review": {
+      "timestamps": true,
+      "fields": {
+        "product": { "type": "relation", "target": "product", "relation": "many-to-one", "required": true },
+        "user": { "type": "relation", "target": "user", "relation": "many-to-one", "required": true },
+        "rating": { "type": "integer", "required": true },
+        "title": { "type": "text" },
+        "content": { "type": "text" },
+        "verified_purchase": { "type": "boolean", "default": false },
+        "status": { "type": "enum", "options": ["pending", "approved", "rejected"], "default": "pending" }
+      },
+      "permissions": {
+        "read": "public",
+        "create": "authenticated",
+        "update": "owner",
+        "delete": "admin"
+      }
+    },
+    "coupon": {
+      "timestamps": true,
+      "fields": {
+        "code": { "type": "text", "required": true, "unique": true },
+        "type": { "type": "enum", "options": ["percentage", "fixed_amount", "free_shipping"], "required": true },
+        "value": { "type": "integer", "required": true },
+        "minimum_order": { "type": "integer" },
+        "usage_limit": { "type": "integer" },
+        "usage_count": { "type": "integer", "default": 0 },
+        "starts_at": { "type": "datetime" },
+        "expires_at": { "type": "datetime" },
+        "active": { "type": "boolean", "default": true }
+      },
+      "permissions": {
+        "read": "admin",
+        "create": "admin",
+        "update": "admin",
+        "delete": "admin"
+      }
+    }
+  }
+}

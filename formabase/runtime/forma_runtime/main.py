@@ -289,6 +289,12 @@ def create_app() -> FastAPI:
                     auth_router = create_auth_router(app.state)
                     app.include_router(auth_router, prefix=api_base)
 
+                # Add GraphQL endpoint for this project
+                graphql_factory = GraphQLSchemaFactory(registration.schema, registration.models)
+                graphql_schema = graphql_factory.generate_schema()
+                graphql_router = GraphQLRouter(graphql_schema)
+                app.include_router(graphql_router, prefix=f"/graphql/p/{data.project_id}")
+
                 return RegisterResponse(
                     success=True,
                     api_base=api_base,

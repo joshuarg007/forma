@@ -1,151 +1,87 @@
 {
   "version": "1.0",
-  "name": "blog",
+  "name": "blog-example",
+  "description": "A blog application with users, posts, comments, and categories",
   "collections": {
     "user": {
-      "displayName": "User",
       "auth": true,
+      "timestamps": true,
       "fields": {
-        "email": {
-          "type": "email",
-          "required": true,
-          "unique": true
-        },
-        "password_hash": {
-          "type": "text",
-          "required": true,
-          "admin": true
-        },
-        "name": {
-          "type": "text",
-          "required": true,
-          "maxLength": 100
-        },
-        "bio": {
-          "type": "text",
-          "maxLength": 500
-        },
-        "avatar": {
-          "type": "file",
-          "accept": ["image/jpeg", "image/png", "image/webp"]
-        },
-        "role": {
-          "type": "enum",
-          "options": ["admin", "editor", "author", "user"],
-          "default": "user"
-        }
+        "email": { "type": "email", "required": true, "unique": true },
+        "password_hash": { "type": "text", "required": true },
+        "name": { "type": "text", "required": true },
+        "avatar": { "type": "file" },
+        "bio": { "type": "text", "textarea": true },
+        "role": { "type": "enum", "options": ["admin", "author", "reader"], "default": "reader" }
+      },
+      "permissions": {
+        "read": "public",
+        "create": "public",
+        "update": "self",
+        "delete": "admin"
       }
     },
     "post": {
-      "displayName": "Blog Post",
       "timestamps": true,
+      "soft_delete": true,
       "fields": {
-        "title": {
-          "type": "text",
-          "required": true,
-          "maxLength": 200,
-          "searchable": true
-        },
-        "slug": {
-          "type": "text",
-          "unique": true,
-          "required": true
-        },
-        "content": {
-          "type": "richtext",
-          "searchable": true
-        },
-        "excerpt": {
-          "type": "text",
-          "maxLength": 500
-        },
-        "featured_image": {
-          "type": "file",
-          "accept": ["image/*"]
-        },
-        "author": {
-          "type": "relation",
-          "target": "user",
-          "relation": "many-to-one",
-          "required": true
-        },
-        "category": {
-          "type": "relation",
-          "target": "category",
-          "relation": "many-to-one"
-        },
-        "status": {
-          "type": "enum",
-          "options": ["draft", "published", "archived"],
-          "default": "draft"
-        },
-        "published_at": {
-          "type": "datetime"
-        },
-        "view_count": {
-          "type": "integer",
-          "default": 0
-        }
+        "title": { "type": "text", "required": true, "max_length": 200 },
+        "slug": { "type": "text", "unique": true },
+        "content": { "type": "richtext" },
+        "excerpt": { "type": "text", "max_length": 500 },
+        "featured_image": { "type": "file" },
+        "author": { "type": "relation", "target": "user", "relation": "many-to-one", "required": true },
+        "category": { "type": "relation", "target": "category", "relation": "many-to-one" },
+        "tags": { "type": "relation", "target": "tag", "relation": "many-to-many" },
+        "status": { "type": "enum", "options": ["draft", "published", "archived"], "default": "draft" },
+        "published_at": { "type": "datetime" },
+        "view_count": { "type": "integer", "default": 0 }
+      },
+      "hooks": {
+        "beforeCreate": ["slugify:title"]
       },
       "api": {
-        "defaultLimit": 10,
-        "maxLimit": 50,
-        "searchFields": ["title", "content", "excerpt"]
+        "default_limit": 10,
+        "max_limit": 50,
+        "search_fields": ["title", "content", "excerpt"]
       }
     },
     "category": {
-      "displayName": "Category",
       "fields": {
-        "name": {
-          "type": "text",
-          "required": true,
-          "maxLength": 50
-        },
-        "slug": {
-          "type": "text",
-          "unique": true,
-          "required": true
-        },
-        "description": {
-          "type": "text",
-          "maxLength": 200
-        }
+        "name": { "type": "text", "required": true },
+        "slug": { "type": "text", "unique": true },
+        "description": { "type": "text" },
+        "parent": { "type": "relation", "target": "category", "relation": "many-to-one" }
+      },
+      "hooks": {
+        "beforeCreate": ["slugify:name"]
+      }
+    },
+    "tag": {
+      "fields": {
+        "name": { "type": "text", "required": true, "unique": true },
+        "slug": { "type": "text", "unique": true }
+      },
+      "hooks": {
+        "beforeCreate": ["slugify:name"]
       }
     },
     "comment": {
-      "displayName": "Comment",
       "timestamps": true,
+      "soft_delete": true,
       "fields": {
-        "content": {
-          "type": "text",
-          "required": true,
-          "maxLength": 2000
-        },
-        "post": {
-          "type": "relation",
-          "target": "post",
-          "relation": "many-to-one",
-          "required": true
-        },
-        "author": {
-          "type": "relation",
-          "target": "user",
-          "relation": "many-to-one",
-          "required": true
-        },
-        "approved": {
-          "type": "boolean",
-          "default": false
-        }
+        "content": { "type": "text", "required": true },
+        "post": { "type": "relation", "target": "post", "relation": "many-to-one", "required": true },
+        "author": { "type": "relation", "target": "user", "relation": "many-to-one", "required": true },
+        "parent": { "type": "relation", "target": "comment", "relation": "many-to-one" },
+        "status": { "type": "enum", "options": ["pending", "approved", "spam"], "default": "pending" }
+      },
+      "permissions": {
+        "read": "public",
+        "create": "authenticated",
+        "update": "owner",
+        "delete": "owner"
       }
-    }
-  },
-  "settings": {
-    "auth": {
-      "providers": ["email"],
-      "sessionDuration": 604800,
-      "allowRegistration": true,
-      "defaultRole": "user"
     }
   }
 }

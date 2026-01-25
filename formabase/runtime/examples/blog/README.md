@@ -1,113 +1,85 @@
 # Blog Example
 
-A simple blog application with users, posts, categories, and comments.
+A complete blog backend with users, posts, comments, categories, and tags.
 
-## Collections
+## Features
 
-- **user** - Blog authors and readers (auth enabled)
-- **post** - Blog posts with status, categories, and rich content
-- **category** - Post categories
-- **comment** - Comments on posts
+- User authentication with roles (admin, author, reader)
+- Posts with rich text content, categories, and tags
+- Nested comments with moderation
+- Automatic slug generation
+- Soft delete for posts and comments
+- Full-text search on posts
 
 ## Quick Start
 
 ```bash
-# From the runtime root directory
-cd ~/formabase/runtime
+# Start the development server
+forma-runtime dev -s schema.json
 
-# Run migrations
-python -m forma_runtime.cli migrate --schema examples/blog/schema.json
-
-# Start server
-python -m forma_runtime.cli serve --schema examples/blog/schema.json --port 8000
-
-# Or with debug mode (auto-migrate)
-DEBUG=true python -m forma_runtime.cli serve --schema examples/blog/schema.json
+# Or start in production mode
+forma-runtime serve -s schema.json --port 8000
 ```
 
 ## API Endpoints
 
-### REST API
+### Users
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login
+- `GET /api/auth/me` - Get current user
 
-```
-# Auth
-POST /api/auth/register   - Register new user
-POST /api/auth/login      - Login
-GET  /api/auth/me         - Get current user
+### Posts
+- `GET /api/post` - List posts (with pagination, search)
+- `GET /api/post/{id}` - Get single post
+- `POST /api/post` - Create post (requires auth)
+- `PUT /api/post/{id}` - Update post
+- `DELETE /api/post/{id}` - Delete post (soft delete)
 
-# Posts
-GET    /api/posts         - List posts
-POST   /api/posts         - Create post
-GET    /api/posts/:id     - Get post
-PUT    /api/posts/:id     - Update post
-DELETE /api/posts/:id     - Delete post
+### Categories & Tags
+- `GET /api/category` - List categories
+- `GET /api/tag` - List tags
 
-# Categories
-GET    /api/categorys     - List categories
-POST   /api/categorys     - Create category
-...
+### Comments
+- `GET /api/comment?post={id}` - List comments for a post
+- `POST /api/comment` - Create comment (requires auth)
 
-# Comments
-GET    /api/comments      - List comments
-POST   /api/comments      - Create comment
-...
-```
-
-### GraphQL
-
-Access GraphQL playground at: `http://localhost:8000/graphql`
-
-```graphql
-# Query
-query {
-  posts(limit: 10, orderBy: "created_at", orderDir: "desc") {
-    id
-    title
-    slug
-    content
-    status
-    created_at
-  }
-}
-
-# Mutation
-mutation {
-  create_Post(data: {
-    title: "My First Post"
-    slug: "my-first-post"
-    content: "Hello world!"
-    author: 1
-    status: "draft"
-  }) {
-    id
-    title
-  }
-}
-```
-
-## Test Data
+## Example Usage
 
 ```bash
 # Register a user
 curl -X POST http://localhost:8000/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@blog.com","password":"secret123","name":"Admin"}'
+  -d '{"email": "author@example.com", "password": "secret123", "name": "John Author"}'
 
-# Create a category
-curl -X POST http://localhost:8000/api/categorys \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Technology","slug":"technology"}'
-
-# Create a post (use the token from register response)
-curl -X POST http://localhost:8000/api/posts \
+# Create a post (with the returned token)
+curl -X POST http://localhost:8000/api/post \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
-    "title":"Getting Started",
-    "slug":"getting-started",
-    "content":"<p>Welcome to my blog!</p>",
-    "author":1,
-    "category":1,
-    "status":"published"
+    "title": "My First Post",
+    "content": "<p>Hello, world!</p>",
+    "status": "published"
   }'
+
+# Search posts
+curl "http://localhost:8000/api/post?search=hello"
+```
+
+## GraphQL
+
+Access the GraphQL endpoint at `/graphql`:
+
+```graphql
+query {
+  posts(limit: 10) {
+    id
+    title
+    author {
+      name
+    }
+    category {
+      name
+    }
+  }
+}
 ```

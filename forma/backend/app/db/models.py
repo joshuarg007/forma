@@ -798,3 +798,179 @@ class FormSubmission(Base):
 
     # Relationships
     form = relationship("Form", back_populates="submissions")
+
+
+# =============================================================================
+# E-COMMERCE MODELS
+# =============================================================================
+
+class ProductStatus(str, PyEnum):
+    DRAFT = "draft"
+    ACTIVE = "active"
+    ARCHIVED = "archived"
+    OUT_OF_STOCK = "out_of_stock"
+
+
+class Product(Base):
+    """Product for e-commerce sites."""
+    __tablename__ = "products"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    project_id = Column(GUID(), ForeignKey("projects.id"), nullable=False, index=True)
+
+    # Product info
+    name = Column(String(255), nullable=False)
+    slug = Column(String(255), nullable=False)  # URL-friendly identifier
+    description = Column(Text)
+    long_description = Column(Text)  # Markdown supported
+
+    # Pricing
+    price_cents = Column(Integer, nullable=False)  # Price in cents
+    compare_at_price_cents = Column(Integer)  # Original price (for sales)
+    currency = Column(String(3), default="USD")
+
+    # Inventory
+    sku = Column(String(100))  # Stock keeping unit
+    quantity = Column(Integer, default=0)  # Stock quantity (-1 for unlimited)
+    track_inventory = Column(Boolean, default=False)
+
+    # Status
+    status = Column(Enum(ProductStatus), default=ProductStatus.DRAFT)
+
+    # Media
+    images = Column(JSON, default=list)  # Array of image URLs
+    thumbnail_url = Column(String(500))
+
+    # Variants (for products with options like size/color)
+    variants = Column(JSON, default=list)  # Array of variant objects
+    options = Column(JSON, default=list)  # Array of option definitions
+
+    # Categorization
+    category = Column(String(100))
+    tags = Column(JSON, default=list)
+
+    # SEO
+    meta_title = Column(String(255))
+    meta_description = Column(Text)
+
+    # Shipping
+    weight_grams = Column(Integer)
+    requires_shipping = Column(Boolean, default=True)
+
+    # Stats
+    view_count = Column(Integer, default=0)
+    purchase_count = Column(Integer, default=0)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    project = relationship("Project", backref="products")
+    order_items = relationship("OrderItem", back_populates="product")
+
+
+class OrderStatus(str, PyEnum):
+    PENDING = "pending"          # Order created, awaiting payment
+    PAID = "paid"                # Payment received
+    PROCESSING = "processing"    # Being prepared
+    SHIPPED = "shipped"          # Shipped to customer
+    DELIVERED = "delivered"      # Delivered to customer
+    CANCELLED = "cancelled"      # Order cancelled
+    REFUNDED = "refunded"        # Payment refunded
+
+
+class Order(Base):
+    """Order for e-commerce purchases."""
+    __tablename__ = "orders"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    project_id = Column(GUID(), ForeignKey("projects.id"), nullable=False, index=True)
+
+    # Order number (human-readable)
+    order_number = Column(String(50), unique=True, nullable=False)
+
+    # Customer info
+    customer_email = Column(String(255), nullable=False)
+    customer_name = Column(String(255))
+    customer_phone = Column(String(50))
+
+    # Shipping address
+    shipping_address_line1 = Column(String(255))
+    shipping_address_line2 = Column(String(255))
+    shipping_city = Column(String(100))
+    shipping_state = Column(String(100))
+    shipping_postal_code = Column(String(20))
+    shipping_country = Column(String(2))  # ISO country code
+
+    # Billing address (if different)
+    billing_address_line1 = Column(String(255))
+    billing_address_line2 = Column(String(255))
+    billing_city = Column(String(100))
+    billing_state = Column(String(100))
+    billing_postal_code = Column(String(20))
+    billing_country = Column(String(2))
+
+    # Pricing
+    subtotal_cents = Column(Integer, nullable=False)
+    shipping_cents = Column(Integer, default=0)
+    tax_cents = Column(Integer, default=0)
+    discount_cents = Column(Integer, default=0)
+    total_cents = Column(Integer, nullable=False)
+    currency = Column(String(3), default="USD")
+
+    # Payment
+    status = Column(Enum(OrderStatus), default=OrderStatus.PENDING)
+    stripe_payment_intent_id = Column(String(255))
+    stripe_checkout_session_id = Column(String(255))
+    paid_at = Column(DateTime)
+
+    # Shipping
+    shipping_method = Column(String(100))
+    tracking_number = Column(String(255))
+    tracking_url = Column(String(500))
+    shipped_at = Column(DateTime)
+    delivered_at = Column(DateTime)
+
+    # Notes
+    customer_notes = Column(Text)  # From customer
+    internal_notes = Column(Text)  # For store owner
+
+    # Metadata
+    source = Column(String(50), default="web")  # web, api, manual
+    ip_address = Column(String(50))
+    user_agent = Column(String(500))
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    project = relationship("Project", backref="orders")
+    items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+
+
+class OrderItem(Base):
+    """Individual item in an order."""
+    __tablename__ = "order_items"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    order_id = Column(GUID(), ForeignKey("orders.id"), nullable=False)
+    product_id = Column(GUID(), ForeignKey("products.id"), nullable=True)  # Nullable if product deleted
+
+    # Product snapshot (in case product changes/deleted)
+    product_name = Column(String(255), nullable=False)
+    product_sku = Column(String(100))
+    variant_name = Column(String(255))  # e.g., "Large / Blue"
+
+    # Pricing
+    unit_price_cents = Column(Integer, nullable=False)
+    quantity = Column(Integer, default=1, nullable=False)
+    total_cents = Column(Integer, nullable=False)
+
+    # Image (snapshot)
+    image_url = Column(String(500))
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    order = relationship("Order", back_populates="items")
+    product = relationship("Product", back_populates="order_items")
