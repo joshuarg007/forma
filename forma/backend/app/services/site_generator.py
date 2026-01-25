@@ -306,6 +306,309 @@ class StaticSiteGenerator:
 })();
 </script>'''
 
+    # Auth JavaScript (for deployed sites with user authentication)
+    AUTH_SCRIPT = '''
+<script>
+(function() {
+  // Forma Auth Handler
+  const FORMA_API = '{api_url}';
+  const PROJECT_ID = '{project_id}';
+  const AUTH_KEY = 'forma_auth_' + PROJECT_ID;
+
+  // Auth state
+  let authState = JSON.parse(localStorage.getItem(AUTH_KEY) || 'null');
+
+  // Update auth UI
+  function updateAuthDisplay() {
+    const isLoggedIn = authState && authState.access_token;
+
+    // Show/hide auth-dependent elements
+    document.querySelectorAll('[data-auth-show]').forEach(el => {
+      el.style.display = isLoggedIn ? '' : 'none';
+    });
+    document.querySelectorAll('[data-auth-hide]').forEach(el => {
+      el.style.display = isLoggedIn ? 'none' : '';
+    });
+
+    // Update user info displays
+    if (isLoggedIn && authState.user) {
+      document.querySelectorAll('[data-auth-name]').forEach(el => {
+        el.textContent = authState.user.name || authState.user.email;
+      });
+      document.querySelectorAll('[data-auth-email]').forEach(el => {
+        el.textContent = authState.user.email;
+      });
+      document.querySelectorAll('[data-auth-avatar]').forEach(el => {
+        if (authState.user.avatar_url) {
+          el.src = authState.user.avatar_url;
+        }
+      });
+    }
+  }
+
+  // Check token expiration
+  function isTokenExpired() {
+    if (!authState || !authState.expires_at) return true;
+    return new Date(authState.expires_at) < new Date();
+  }
+
+  // Get auth headers
+  function getAuthHeaders() {
+    if (!authState || !authState.access_token) return {};
+    return { 'Authorization': 'Bearer ' + authState.access_token };
+  }
+
+  // Global auth API
+  window.formaAuth = {
+    isLoggedIn: function() {
+      return authState && authState.access_token && !isTokenExpired();
+    },
+
+    getUser: function() {
+      return authState ? authState.user : null;
+    },
+
+    getToken: function() {
+      return authState ? authState.access_token : null;
+    },
+
+    register: async function(email, password, name) {
+      try {
+        const response = await fetch(FORMA_API + '/api/site-auth/' + PROJECT_ID + '/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, name })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.detail || 'Registration failed');
+        }
+
+        authState = {
+          access_token: result.access_token,
+          refresh_token: result.refresh_token,
+          expires_at: new Date(Date.now() + result.expires_in * 1000).toISOString(),
+          user: result.user
+        };
+        localStorage.setItem(AUTH_KEY, JSON.stringify(authState));
+        updateAuthDisplay();
+
+        if (window.formaTrack) window.formaTrack('sign_up', 'auth');
+        return { success: true, user: result.user };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    },
+
+    login: async function(email, password) {
+      try {
+        const response = await fetch(FORMA_API + '/api/site-auth/' + PROJECT_ID + '/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.detail || 'Login failed');
+        }
+
+        authState = {
+          access_token: result.access_token,
+          refresh_token: result.refresh_token,
+          expires_at: new Date(Date.now() + result.expires_in * 1000).toISOString(),
+          user: result.user
+        };
+        localStorage.setItem(AUTH_KEY, JSON.stringify(authState));
+        updateAuthDisplay();
+
+        if (window.formaTrack) window.formaTrack('login', 'auth');
+        return { success: true, user: result.user };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    },
+
+    logout: async function() {
+      try {
+        if (authState && authState.access_token) {
+          await fetch(FORMA_API + '/api/site-auth/' + PROJECT_ID + '/logout', {
+            method: 'POST',
+            headers: getAuthHeaders()
+          });
+        }
+      } catch (e) {}
+
+      authState = null;
+      localStorage.removeItem(AUTH_KEY);
+      updateAuthDisplay();
+
+      if (window.formaTrack) window.formaTrack('logout', 'auth');
+      return { success: true };
+    },
+
+    updateProfile: async function(data) {
+      try {
+        const response = await fetch(FORMA_API + '/api/site-auth/' + PROJECT_ID + '/me', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.detail || 'Update failed');
+        }
+
+        authState.user = result.user;
+        localStorage.setItem(AUTH_KEY, JSON.stringify(authState));
+        updateAuthDisplay();
+
+        return { success: true, user: result.user };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    },
+
+    changePassword: async function(currentPassword, newPassword) {
+      try {
+        const response = await fetch(FORMA_API + '/api/site-auth/' + PROJECT_ID + '/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          body: JSON.stringify({ current_password: currentPassword, new_password: newPassword })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.detail || 'Password change failed');
+        }
+
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    },
+
+    forgotPassword: async function(email) {
+      try {
+        const response = await fetch(FORMA_API + '/api/site-auth/' + PROJECT_ID + '/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    },
+
+    resetPassword: async function(token, newPassword) {
+      try {
+        const response = await fetch(FORMA_API + '/api/site-auth/' + PROJECT_ID + '/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, new_password: newPassword })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.detail || 'Password reset failed');
+        }
+
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error.message };
+      }
+    },
+
+    // Fetch wrapper with auth
+    fetch: async function(url, options = {}) {
+      options.headers = { ...options.headers, ...getAuthHeaders() };
+      return fetch(url, options);
+    }
+  };
+
+  // Handle login forms
+  document.querySelectorAll('form[data-auth-login]').forEach(form => {
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      const email = formData.get('email');
+      const password = formData.get('password');
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const errorEl = this.querySelector('[data-auth-error]');
+
+      if (submitBtn) submitBtn.disabled = true;
+      if (errorEl) errorEl.textContent = '';
+
+      const result = await window.formaAuth.login(email, password);
+
+      if (result.success) {
+        const redirect = this.dataset.authRedirect || '/dashboard';
+        window.location.href = redirect;
+      } else {
+        if (errorEl) errorEl.textContent = result.error;
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  });
+
+  // Handle register forms
+  document.querySelectorAll('form[data-auth-register]').forEach(form => {
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      const email = formData.get('email');
+      const password = formData.get('password');
+      const name = formData.get('name');
+      const submitBtn = this.querySelector('button[type="submit"]');
+      const errorEl = this.querySelector('[data-auth-error]');
+
+      if (submitBtn) submitBtn.disabled = true;
+      if (errorEl) errorEl.textContent = '';
+
+      const result = await window.formaAuth.register(email, password, name);
+
+      if (result.success) {
+        const redirect = this.dataset.authRedirect || '/dashboard';
+        window.location.href = redirect;
+      } else {
+        if (errorEl) errorEl.textContent = result.error;
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  });
+
+  // Handle logout buttons
+  document.querySelectorAll('[data-auth-logout]').forEach(btn => {
+    btn.addEventListener('click', async function(e) {
+      e.preventDefault();
+      await window.formaAuth.logout();
+      const redirect = this.dataset.authRedirect || '/';
+      window.location.href = redirect;
+    });
+  });
+
+  // Protect pages that require auth
+  if (document.body.dataset.authRequired === 'true') {
+    if (!window.formaAuth.isLoggedIn()) {
+      const loginUrl = document.body.dataset.authLoginUrl || '/login';
+      window.location.href = loginUrl + '?redirect=' + encodeURIComponent(window.location.pathname);
+    }
+  }
+
+  // Initialize display
+  updateAuthDisplay();
+})();
+</script>'''
+
     # Form handling JavaScript (injected into pages with forms)
     FORM_HANDLER_SCRIPT = '''
 <script>
@@ -760,6 +1063,263 @@ document.getElementById('checkout-form').addEventListener('submit', function(e) 
     <span data-cart-total>$0.00</span>
   </div>
 </div>''',
+
+        # Auth components
+        'auth-login': '''<section class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-6">
+  <div class="w-full max-w-md">
+    <h2 class="text-3xl font-bold text-gray-900 text-center mb-2">{title}</h2>
+    <p class="text-gray-600 text-center mb-8">{subtitle}</p>
+    <form data-auth-login data-auth-redirect="{redirect_url}" class="bg-white p-8 rounded-2xl shadow-sm space-y-6">
+      <div data-auth-error class="text-red-500 text-sm text-center"></div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+        <input type="email" name="email" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="you@example.com" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+        <input type="password" name="password" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="Enter your password" />
+      </div>
+      <div class="flex items-center justify-between text-sm">
+        <label class="flex items-center gap-2">
+          <input type="checkbox" name="remember" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+          <span class="text-gray-600">Remember me</span>
+        </label>
+        <a href="{forgot_password_url}" class="text-indigo-600 hover:text-indigo-700">{forgot_password_text}</a>
+      </div>
+      <button type="submit" class="w-full py-4 px-6 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition">{submit_text}</button>
+      <p class="text-center text-gray-600 text-sm">Don't have an account? <a href="{register_url}" class="text-indigo-600 hover:text-indigo-700 font-medium">{register_text}</a></p>
+    </form>
+  </div>
+</section>''',
+
+        'auth-register': '''<section class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-6">
+  <div class="w-full max-w-md">
+    <h2 class="text-3xl font-bold text-gray-900 text-center mb-2">{title}</h2>
+    <p class="text-gray-600 text-center mb-8">{subtitle}</p>
+    <form data-auth-register data-auth-redirect="{redirect_url}" class="bg-white p-8 rounded-2xl shadow-sm space-y-6">
+      <div data-auth-error class="text-red-500 text-sm text-center"></div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+        <input type="text" name="name" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="Your name" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+        <input type="email" name="email" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="you@example.com" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+        <input type="password" name="password" required minlength="8" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="At least 8 characters" />
+      </div>
+      <button type="submit" class="w-full py-4 px-6 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition">{submit_text}</button>
+      <p class="text-center text-gray-600 text-sm">Already have an account? <a href="{login_url}" class="text-indigo-600 hover:text-indigo-700 font-medium">{login_text}</a></p>
+    </form>
+  </div>
+</section>''',
+
+        'auth-forgot-password': '''<section class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-6">
+  <div class="w-full max-w-md">
+    <h2 class="text-3xl font-bold text-gray-900 text-center mb-2">{title}</h2>
+    <p class="text-gray-600 text-center mb-8">{subtitle}</p>
+    <form id="forgot-password-form" class="bg-white p-8 rounded-2xl shadow-sm space-y-6">
+      <div id="forgot-error" class="text-red-500 text-sm text-center hidden"></div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+        <input type="email" name="email" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="you@example.com" />
+      </div>
+      <button type="submit" class="w-full py-4 px-6 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition">{submit_text}</button>
+      <p class="text-center text-gray-600 text-sm"><a href="{login_url}" class="text-indigo-600 hover:text-indigo-700 font-medium">&larr; Back to login</a></p>
+    </form>
+    <div id="forgot-success" class="hidden bg-white p-8 rounded-2xl shadow-sm text-center">
+      <div class="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+      </div>
+      <p class="text-gray-900 font-medium">{success_message}</p>
+      <a href="{login_url}" class="inline-block mt-4 text-indigo-600 hover:text-indigo-700">Back to login</a>
+    </div>
+  </div>
+</section>
+<script>
+document.getElementById('forgot-password-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const email = new FormData(this).get('email');
+  const result = await window.formaAuth.forgotPassword(email);
+  if (result.success) {
+    this.classList.add('hidden');
+    document.getElementById('forgot-success').classList.remove('hidden');
+  } else {
+    document.getElementById('forgot-error').textContent = result.error;
+    document.getElementById('forgot-error').classList.remove('hidden');
+  }
+});
+</script>''',
+
+        'auth-reset-password': '''<section class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-6">
+  <div class="w-full max-w-md">
+    <h2 class="text-3xl font-bold text-gray-900 text-center mb-2">{title}</h2>
+    <p class="text-gray-600 text-center mb-8">{subtitle}</p>
+    <form id="reset-password-form" class="bg-white p-8 rounded-2xl shadow-sm space-y-6">
+      <div id="reset-error" class="text-red-500 text-sm text-center hidden"></div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+        <input type="password" name="password" required minlength="8" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="At least 8 characters" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+        <input type="password" name="confirm" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="Confirm your password" />
+      </div>
+      <button type="submit" class="w-full py-4 px-6 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition">{submit_text}</button>
+    </form>
+    <div id="reset-success" class="hidden bg-white p-8 rounded-2xl shadow-sm text-center">
+      <div class="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+      </div>
+      <p class="text-gray-900 font-medium">{success_message}</p>
+      <a href="{login_url}" class="inline-block mt-4 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700">Sign in</a>
+    </div>
+  </div>
+</section>
+<script>
+document.getElementById('reset-password-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const formData = new FormData(this);
+  const password = formData.get('password');
+  const confirm = formData.get('confirm');
+
+  if (password !== confirm) {
+    document.getElementById('reset-error').textContent = 'Passwords do not match';
+    document.getElementById('reset-error').classList.remove('hidden');
+    return;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+
+  if (!token) {
+    document.getElementById('reset-error').textContent = 'Invalid reset link';
+    document.getElementById('reset-error').classList.remove('hidden');
+    return;
+  }
+
+  const result = await window.formaAuth.resetPassword(token, password);
+  if (result.success) {
+    this.classList.add('hidden');
+    document.getElementById('reset-success').classList.remove('hidden');
+  } else {
+    document.getElementById('reset-error').textContent = result.error;
+    document.getElementById('reset-error').classList.remove('hidden');
+  }
+});
+</script>''',
+
+        'user-profile': '''<section class="py-12 px-6 bg-gray-50 min-h-screen" data-auth-required="true">
+  <div class="max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">{title}</h1>
+    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+      <div class="p-8 border-b border-gray-100">
+        <div class="flex items-center gap-6">
+          <img data-auth-avatar src="https://placehold.co/100" alt="Avatar" class="w-20 h-20 rounded-full object-cover" />
+          <div>
+            <h2 class="text-xl font-semibold text-gray-900" data-auth-name>User</h2>
+            <p class="text-gray-500" data-auth-email>user@example.com</p>
+          </div>
+        </div>
+      </div>
+      <form id="profile-form" class="p-8 space-y-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+          <input type="text" name="name" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Avatar URL</label>
+          <input type="url" name="avatar_url" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="https://..." />
+        </div>
+        <button type="submit" class="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition">Save Changes</button>
+      </form>
+      <div class="p-8 border-t border-gray-100">
+        <h3 class="font-semibold text-gray-900 mb-4">Change Password</h3>
+        <form id="password-form" class="space-y-4">
+          <div id="password-message" class="text-sm hidden"></div>
+          <input type="password" name="current" required placeholder="Current password" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 outline-none transition" />
+          <input type="password" name="new" required minlength="8" placeholder="New password" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 outline-none transition" />
+          <button type="submit" class="px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition">Change Password</button>
+        </form>
+      </div>
+      <div class="p-8 border-t border-gray-100">
+        <button data-auth-logout data-auth-redirect="/" class="text-red-600 hover:text-red-700 font-medium">Sign Out</button>
+      </div>
+    </div>
+  </div>
+</section>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const user = window.formaAuth.getUser();
+  if (user) {
+    document.querySelector('[name="name"]').value = user.name || '';
+    document.querySelector('[name="avatar_url"]').value = user.avatar_url || '';
+  }
+});
+document.getElementById('profile-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const formData = new FormData(this);
+  const result = await window.formaAuth.updateProfile({
+    name: formData.get('name'),
+    avatar_url: formData.get('avatar_url')
+  });
+  if (result.success) {
+    alert('Profile updated!');
+    location.reload();
+  }
+});
+document.getElementById('password-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const formData = new FormData(this);
+  const msgEl = document.getElementById('password-message');
+  const result = await window.formaAuth.changePassword(formData.get('current'), formData.get('new'));
+  msgEl.classList.remove('hidden', 'text-green-600', 'text-red-600');
+  if (result.success) {
+    msgEl.textContent = 'Password changed successfully';
+    msgEl.classList.add('text-green-600');
+    this.reset();
+  } else {
+    msgEl.textContent = result.error;
+    msgEl.classList.add('text-red-600');
+  }
+});
+</script>''',
+
+        'user-menu': '''<div class="relative" data-auth-show style="display:none">
+  <button id="user-menu-btn" class="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition">
+    <img data-auth-avatar src="https://placehold.co/32" alt="" class="w-8 h-8 rounded-full object-cover" />
+    <span data-auth-name class="text-sm font-medium text-gray-700 hidden md:block">User</span>
+    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+  </button>
+  <div id="user-menu-dropdown" class="hidden absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50">
+    <a href="{profile_url}" class="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-50">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+      Profile
+    </a>
+    <a href="{settings_url}" class="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-50">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      Settings
+    </a>
+    <div class="border-t border-gray-100 my-1"></div>
+    <button data-auth-logout class="w-full flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-gray-50">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+      Sign Out
+    </button>
+  </div>
+</div>
+<a href="{login_url}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium" data-auth-hide>Sign In</a>
+<script>
+document.getElementById('user-menu-btn')?.addEventListener('click', function() {
+  document.getElementById('user-menu-dropdown').classList.toggle('hidden');
+});
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#user-menu-btn') && !e.target.closest('#user-menu-dropdown')) {
+    document.getElementById('user-menu-dropdown')?.classList.add('hidden');
+  }
+});
+</script>''',
     }
 
     # Default props for components
@@ -970,7 +1530,47 @@ document.getElementById('checkout-form').addEventListener('submit', function(e) 
         'cart': {},
         'cart-mini': {},
         'checkout': {},
-        'order-summary': {}
+        'order-summary': {},
+        'auth-login': {
+            'title': 'Welcome back',
+            'subtitle': 'Sign in to your account',
+            'submit_text': 'Sign In',
+            'redirect_url': '/dashboard',
+            'forgot_password_url': '/forgot-password',
+            'forgot_password_text': 'Forgot password?',
+            'register_url': '/register',
+            'register_text': 'Create an account'
+        },
+        'auth-register': {
+            'title': 'Create an account',
+            'subtitle': 'Get started for free',
+            'submit_text': 'Create Account',
+            'redirect_url': '/dashboard',
+            'login_url': '/login',
+            'login_text': 'Sign in'
+        },
+        'auth-forgot-password': {
+            'title': 'Forgot password?',
+            'subtitle': 'Enter your email and we\'ll send you a reset link.',
+            'submit_text': 'Send Reset Link',
+            'login_url': '/login',
+            'success_message': 'Check your email for a password reset link.'
+        },
+        'auth-reset-password': {
+            'title': 'Reset password',
+            'subtitle': 'Enter your new password below.',
+            'submit_text': 'Reset Password',
+            'login_url': '/login',
+            'success_message': 'Your password has been reset successfully!'
+        },
+        'user-profile': {
+            'title': 'Your Profile'
+        },
+        'user-menu': {
+            'profile_url': '/profile',
+            'settings_url': '/settings',
+            'login_url': '/login'
+        }
     }
 
     def __init__(self, project_name: str = "My Site", project_id: str = None, api_url: str = None, analytics_enabled: bool = True):
@@ -1057,6 +1657,13 @@ document.getElementById('checkout-form').addEventListener('submit', function(e) 
             for c in components
         )
 
+        # Check if page has auth components
+        auth_types = ['auth-login', 'auth-register', 'auth-forgot-password', 'auth-reset-password', 'user-profile', 'user-menu']
+        has_auth = any(
+            c.get('type', '') in auth_types
+            for c in components
+        )
+
         # Generate scripts
         scripts = []
 
@@ -1077,6 +1684,13 @@ document.getElementById('checkout-form').addEventListener('submit', function(e) 
         # E-commerce script (if page has e-commerce components)
         if has_ecommerce and self.project_id:
             scripts.append(self.ECOMMERCE_SCRIPT.format(
+                api_url=self.api_url,
+                project_id=self.project_id
+            ))
+
+        # Auth script (if page has auth components)
+        if has_auth and self.project_id:
+            scripts.append(self.AUTH_SCRIPT.format(
                 api_url=self.api_url,
                 project_id=self.project_id
             ))

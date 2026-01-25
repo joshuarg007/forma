@@ -974,3 +974,87 @@ class OrderItem(Base):
     # Relationships
     order = relationship("Order", back_populates="items")
     product = relationship("Product", back_populates="order_items")
+
+
+# =============================================================================
+# SITE AUTH MODELS (For deployed sites)
+# =============================================================================
+
+class SiteUser(Base):
+    """User account for a deployed site (project-scoped)."""
+    __tablename__ = "site_users"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    project_id = Column(GUID(), ForeignKey("projects.id"), nullable=False, index=True)
+
+    # Auth credentials
+    email = Column(String(255), nullable=False, index=True)
+    password_hash = Column(String(255), nullable=False)
+
+    # Profile
+    name = Column(String(255))
+    avatar_url = Column(String(500))
+    phone = Column(String(50))
+
+    # Status
+    is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False)
+    email_verified_at = Column(DateTime)
+
+    # OAuth (optional)
+    google_id = Column(String(255))
+    github_id = Column(String(255))
+
+    # Custom data
+    custom_data = Column(JSON, default=dict)  # Custom fields
+
+    # Password reset
+    reset_token = Column(String(255))
+    reset_token_expires = Column(DateTime)
+
+    # Stats
+    last_login_at = Column(DateTime)
+    login_count = Column(Integer, default=0)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    project = relationship("Project", backref="site_users")
+    sessions = relationship("SiteSession", back_populates="user", cascade="all, delete-orphan")
+
+    # Unique email per project
+    __table_args__ = (
+        {'sqlite_autoincrement': True},
+    )
+
+
+class SiteSession(Base):
+    """Session for site user authentication."""
+    __tablename__ = "site_sessions"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    user_id = Column(GUID(), ForeignKey("site_users.id"), nullable=False, index=True)
+
+    # Token
+    token = Column(String(255), unique=True, nullable=False, index=True)
+    refresh_token = Column(String(255), unique=True)
+
+    # Device/session info
+    device_info = Column(String(500))
+    ip_address = Column(String(50))
+    user_agent = Column(String(500))
+
+    # Expiration
+    expires_at = Column(DateTime, nullable=False)
+    refresh_expires_at = Column(DateTime)
+
+    # Status
+    is_revoked = Column(Boolean, default=False)
+    revoked_at = Column(DateTime)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_used_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    user = relationship("SiteUser", back_populates="sessions")
