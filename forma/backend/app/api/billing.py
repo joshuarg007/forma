@@ -83,3 +83,62 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
 
     billing_service.handle_webhook(db, event)
     return {"status": "success"}
+
+
+# =============================================================================
+# STRIPE CONNECT (For creators/sellers)
+# =============================================================================
+
+@router.get("/connect/status")
+async def get_connect_status(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user_required)
+):
+    """Get user's Stripe Connect account status."""
+    status = billing_service.get_connect_account_status(user)
+    return status
+
+
+@router.post("/connect/onboard")
+async def create_connect_onboarding(
+    return_url: str,
+    refresh_url: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user_required)
+):
+    """Create Stripe Connect onboarding link for creators."""
+    try:
+        url = billing_service.create_connect_onboarding_link(
+            db=db,
+            user=user,
+            return_url=return_url,
+            refresh_url=refresh_url
+        )
+        return {"onboarding_url": url}
+    except stripe.StripeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.post("/connect/dashboard")
+async def get_connect_dashboard(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user_required)
+):
+    """Get Stripe Connect dashboard login link."""
+    if not user.stripe_connect_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No connected Stripe account"
+        )
+
+    try:
+        url = billing_service.create_connect_login_link(user)
+        return {"dashboard_url": url}
+    except stripe.StripeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )

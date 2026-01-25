@@ -525,13 +525,15 @@ def fork_component(
 # PURCHASES
 # =============================================================================
 
-@router.post("/purchase", response_model=PurchaseResponse)
-def purchase_listing(
+@router.post("/purchase/checkout")
+def create_purchase_checkout(
     data: PurchaseCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Purchase a paid listing."""
+    """Create Stripe checkout session for marketplace purchase."""
+    from app.services.billing import billing_service
+
     listing = db.query(MarketplaceListing).filter(
         MarketplaceListing.id == data.listing_id,
         MarketplaceListing.status == ListingStatus.PUBLISHED
@@ -541,7 +543,7 @@ def purchase_listing(
         raise HTTPException(status_code=404, detail="Listing not found")
 
     if listing.listing_type == ListingType.FREE:
-        raise HTTPException(status_code=400, detail="This component is free")
+        raise HTTPException(status_code=400, detail="This component is free - no payment needed")
 
     # Check if already purchased
     existing = db.query(Purchase).filter(
@@ -553,23 +555,77 @@ def purchase_listing(
     if existing:
         raise HTTPException(status_code=400, detail="Already purchased")
 
-    # TODO: Process Stripe payment here
-    # For now, create purchase record directly
+    # Check seller has Connect account
+    seller = listing.creator
+    if not seller.stripe_connect_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Seller has not set up payments yet"
+        )
 
-    platform_fee = listing.price_usd * 0.15  # 15% platform fee
-    creator_payout = listing.price_usd - platform_fee
+    # Create checkout session
+    try:
+        checkout_url = billing_service.create_marketplace_checkout(
+            db=db,
+            buyer=current_user,
+            listing_id=str(listing.id),
+            listing_title=listing.title,
+            amount_cents=int(listing.price_usd * 100),
+            seller_connect_id=seller.stripe_connect_id,
+            success_url=data.success_url or "https://forma.app/marketplace/purchase-success",
+            cancel_url=data.cancel_url or "https://forma.app/marketplace"
+        )
+        return {"checkout_url": checkout_url}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
+
+@router.post("/purchase", response_model=PurchaseResponse)
+def purchase_listing(
+    data: PurchaseCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Direct purchase (for free components or testing).
+    For paid components, use /purchase/checkout instead.
+    """
+    listing = db.query(MarketplaceListing).filter(
+        MarketplaceListing.id == data.listing_id,
+        MarketplaceListing.status == ListingStatus.PUBLISHED
+    ).first()
+
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+
+    # For paid listings, redirect to checkout
+    if listing.listing_type == ListingType.PAID:
+        raise HTTPException(
+            status_code=400,
+            detail="Please use /purchase/checkout for paid listings"
+        )
+
+    # Check if already purchased/downloaded
+    existing = db.query(Purchase).filter(
+        Purchase.listing_id == listing.id,
+        Purchase.buyer_id == current_user.id
+    ).first()
+
+    if existing:
+        raise HTTPException(status_code=400, detail="Already in your library")
+
+    # Create free "purchase" record
     purchase = Purchase(
         listing_id=listing.id,
         buyer_id=current_user.id,
-        amount_usd=listing.price_usd,
-        platform_fee=platform_fee,
-        creator_payout=creator_payout,
+        amount_usd=0,
+        platform_fee=0,
+        creator_payout=0,
         status="completed"
     )
 
-    # Update listing revenue
-    listing.revenue_total += listing.price_usd
+    # Update listing stats
+    listing.downloads += 1
 
     db.add(purchase)
     db.commit()

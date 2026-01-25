@@ -123,6 +123,8 @@ class ListingSearchResults(BaseModel):
 class PurchaseCreate(BaseModel):
     listing_id: UUID
     payment_method_id: Optional[str] = None  # Stripe payment method
+    success_url: Optional[str] = None  # Redirect after successful payment
+    cancel_url: Optional[str] = None   # Redirect if payment cancelled
 
 
 class PurchaseResponse(BaseModel):
