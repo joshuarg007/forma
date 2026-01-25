@@ -12,6 +12,65 @@ class StaticSiteGenerator:
     HTML with Tailwind CSS for instant deployment.
     """
 
+    # Form handling JavaScript (injected into pages with forms)
+    FORM_HANDLER_SCRIPT = '''
+<script>
+(function() {
+  // Forma Form Handler
+  const FORMA_API = '{api_url}';
+  const PROJECT_ID = '{project_id}';
+
+  document.querySelectorAll('form[data-forma-form]').forEach(function(form) {
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const formSlug = form.dataset.formaForm;
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalText = submitBtn ? submitBtn.innerHTML : '';
+
+      // Show loading state
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Sending...';
+      }
+
+      try {
+        const response = await fetch(FORMA_API + '/api/submit/' + PROJECT_ID + '/' + formSlug, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: data, page_url: window.location.href })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          // Show success message
+          form.style.display = 'none';
+          const successEl = document.getElementById(form.id.replace('-form', '-success'));
+          if (successEl) successEl.classList.remove('hidden');
+
+          // Redirect if specified
+          if (result.redirect_url) {
+            window.location.href = result.redirect_url;
+          }
+        } else {
+          throw new Error(result.message || 'Submission failed');
+        }
+      } catch (error) {
+        console.error('Form submission error:', error);
+        alert('Something went wrong. Please try again.');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalText;
+        }
+      }
+    });
+  });
+})();
+</script>'''
+
     # Component type to HTML template mapping
     COMPONENT_TEMPLATES = {
         'hero-centered': '''<section class="bg-gradient-to-br from-indigo-600 to-purple-700 py-20 px-8 text-center text-white">
@@ -148,6 +207,93 @@ class StaticSiteGenerator:
   </header>
   <main class="max-w-7xl mx-auto p-6">{content}</main>
 </div>''',
+
+        # Form components
+        'form-contact': '''<section class="py-16 px-6 bg-gray-50">
+  <div class="max-w-xl mx-auto">
+    <h2 class="text-3xl font-bold text-gray-900 text-center mb-2">{title}</h2>
+    <p class="text-gray-600 text-center mb-8">{subtitle}</p>
+    <form id="contact-form" class="space-y-6" data-forma-form="{form_slug}">
+      <input type="hidden" name="_honeypot" value="" />
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Full Name <span class="text-red-500">*</span></label>
+        <input type="text" name="name" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="Your name" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Email Address <span class="text-red-500">*</span></label>
+        <input type="email" name="email" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="you@example.com" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Message <span class="text-red-500">*</span></label>
+        <textarea name="message" required rows="4" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition resize-none" placeholder="Your message"></textarea>
+      </div>
+      <button type="submit" class="w-full py-4 px-6 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500/20 transition flex items-center justify-center gap-2">
+        {submit_text}
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+      </button>
+    </form>
+    <div id="form-success" class="hidden p-8 rounded-2xl bg-green-50 text-center">
+      <div class="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+      </div>
+      <p class="text-lg font-medium text-green-800">{success_message}</p>
+    </div>
+  </div>
+</section>''',
+
+        'form-newsletter': '''<section class="py-12 px-6 bg-indigo-600">
+  <div class="max-w-xl mx-auto text-center">
+    <h2 class="text-2xl font-bold text-white mb-2">{title}</h2>
+    <p class="text-indigo-100 mb-6">{subtitle}</p>
+    <form id="newsletter-form" class="flex gap-3 max-w-md mx-auto" data-forma-form="{form_slug}">
+      <input type="hidden" name="_honeypot" value="" />
+      <input type="email" name="email" required class="flex-1 px-4 py-3 rounded-xl border-0 focus:ring-2 focus:ring-white/50 outline-none" placeholder="Enter your email" />
+      <button type="submit" class="px-6 py-3 bg-white text-indigo-600 font-semibold rounded-xl hover:bg-gray-100 transition">{submit_text}</button>
+    </form>
+    <div id="newsletter-success" class="hidden mt-4 text-white font-medium">{success_message}</div>
+  </div>
+</section>''',
+
+        'form-login': '''<section class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-6">
+  <div class="w-full max-w-md">
+    <h2 class="text-3xl font-bold text-gray-900 text-center mb-2">{title}</h2>
+    <p class="text-gray-600 text-center mb-8">{subtitle}</p>
+    <form id="login-form" class="bg-white p-8 rounded-2xl shadow-sm space-y-6" data-forma-form="{form_slug}">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+        <input type="email" name="email" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="you@example.com" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+        <input type="password" name="password" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="Enter your password" />
+      </div>
+      <button type="submit" class="w-full py-4 px-6 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition">{submit_text}</button>
+    </form>
+  </div>
+</section>''',
+
+        'form-register': '''<section class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-6">
+  <div class="w-full max-w-md">
+    <h2 class="text-3xl font-bold text-gray-900 text-center mb-2">{title}</h2>
+    <p class="text-gray-600 text-center mb-8">{subtitle}</p>
+    <form id="register-form" class="bg-white p-8 rounded-2xl shadow-sm space-y-6" data-forma-form="{form_slug}">
+      <input type="hidden" name="_honeypot" value="" />
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+        <input type="text" name="name" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="Your name" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+        <input type="email" name="email" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="you@example.com" />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+        <input type="password" name="password" required class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" placeholder="Create a password" />
+      </div>
+      <button type="submit" class="w-full py-4 px-6 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition">{submit_text}</button>
+    </form>
+  </div>
+</section>''',
     }
 
     # Default props for components
@@ -277,11 +423,39 @@ class StaticSiteGenerator:
         <summary class="px-6 py-4 cursor-pointer font-medium text-gray-900 hover:bg-gray-50">How do I get started?</summary>
         <div class="px-6 pb-4 text-gray-600">Sign up and follow our quick-start guide.</div>
       </details>'''
+        },
+        'form-contact': {
+            'title': 'Get in Touch',
+            'subtitle': 'Have a question? We\'d love to hear from you.',
+            'form_slug': 'contact',
+            'submit_text': 'Send Message',
+            'success_message': 'Thank you! Your message has been sent.'
+        },
+        'form-newsletter': {
+            'title': 'Subscribe to our newsletter',
+            'subtitle': 'Get the latest updates directly to your inbox.',
+            'form_slug': 'newsletter',
+            'submit_text': 'Subscribe',
+            'success_message': 'Thanks for subscribing!'
+        },
+        'form-login': {
+            'title': 'Welcome back',
+            'subtitle': 'Sign in to your account',
+            'form_slug': 'login',
+            'submit_text': 'Sign In'
+        },
+        'form-register': {
+            'title': 'Create an account',
+            'subtitle': 'Get started for free',
+            'form_slug': 'register',
+            'submit_text': 'Create Account'
         }
     }
 
-    def __init__(self, project_name: str = "My Site"):
+    def __init__(self, project_name: str = "My Site", project_id: str = None, api_url: str = None):
         self.project_name = project_name
+        self.project_id = project_id or ""
+        self.api_url = api_url or "https://api.forma.app"
 
     def _render_component(self, component: Dict[str, Any]) -> str:
         """Render a single component to HTML."""
@@ -348,6 +522,20 @@ class StaticSiteGenerator:
 
         body_content = '\n\n'.join(components_html)
 
+        # Check if page has form components
+        has_forms = any(
+            c.get('type', '').startswith('form-')
+            for c in components
+        )
+
+        # Generate form handler script if needed
+        form_script = ""
+        if has_forms and self.project_id:
+            form_script = self.FORM_HANDLER_SCRIPT.format(
+                api_url=self.api_url,
+                project_id=self.project_id
+            )
+
         # Generate HTML document
         html = f'''<!DOCTYPE html>
 <html lang="en">
@@ -366,6 +554,7 @@ class StaticSiteGenerator:
 </head>
 <body class="min-h-screen bg-white">
 {body_content}
+{form_script}
 </body>
 </html>'''
 

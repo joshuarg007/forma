@@ -106,7 +106,11 @@ class DeploymentWorker:
             # Step 1: Generate static site
             self._log(db, deployment_id, "Generating static HTML from components", "build")
 
-            generator = StaticSiteGenerator(project_name=project.name)
+            generator = StaticSiteGenerator(
+                project_name=project.name,
+                project_id=str(project.id),
+                api_url=f"https://{settings.forma_domain}" if hasattr(settings, 'forma_domain') else "https://api.forma.app"
+            )
             pages = deployment.pages_snapshot or []
 
             if not pages:

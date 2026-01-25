@@ -604,3 +604,95 @@ class ProjectHostingConfig(Base):
     # Relationships
     project = relationship("Project", back_populates="hosting_config")
     current_deployment = relationship("Deployment", foreign_keys=[current_deployment_id])
+
+
+# =============================================================================
+# FORM BUILDER MODELS
+# =============================================================================
+
+class FormStatus(str, PyEnum):
+    DRAFT = "draft"
+    PUBLISHED = "published"
+    ARCHIVED = "archived"
+
+
+class Form(Base):
+    """Form definition for a project."""
+    __tablename__ = "forms"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    project_id = Column(GUID(), ForeignKey("projects.id"), nullable=False)
+
+    # Form identity
+    name = Column(String(255), nullable=False)
+    slug = Column(String(100), nullable=False)  # URL-friendly identifier
+    description = Column(Text)
+    status = Column(Enum(FormStatus), default=FormStatus.DRAFT)
+
+    # Form configuration
+    fields = Column(JSON, nullable=False, default=list)  # Array of field definitions
+    settings = Column(JSON, default=dict)  # Submit URL, redirect, notifications, etc.
+
+    # Styling
+    styles = Column(JSON, default=dict)  # Custom styling options
+
+    # Success behavior
+    success_message = Column(Text, default="Thank you for your submission!")
+    redirect_url = Column(String(500))  # Optional redirect after submit
+
+    # Notifications
+    notify_email = Column(String(255))  # Email to notify on submission
+    notify_enabled = Column(Boolean, default=True)
+
+    # Spam protection
+    recaptcha_enabled = Column(Boolean, default=False)
+    honeypot_enabled = Column(Boolean, default=True)
+
+    # Stats
+    submission_count = Column(Integer, default=0)
+    last_submission_at = Column(DateTime)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    project = relationship("Project", backref="forms")
+    submissions = relationship("FormSubmission", back_populates="form", cascade="all, delete-orphan")
+
+
+class FormSubmissionStatus(str, PyEnum):
+    NEW = "new"
+    READ = "read"
+    ARCHIVED = "archived"
+    SPAM = "spam"
+
+
+class FormSubmission(Base):
+    """Submission to a form."""
+    __tablename__ = "form_submissions"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    form_id = Column(GUID(), ForeignKey("forms.id"), nullable=False)
+
+    # Submission data
+    data = Column(JSON, nullable=False)  # The actual form field values
+    status = Column(Enum(FormSubmissionStatus), default=FormSubmissionStatus.NEW)
+
+    # Metadata
+    ip_address = Column(String(50))
+    user_agent = Column(String(500))
+    referrer = Column(String(500))
+    page_url = Column(String(500))  # Which page the form was on
+
+    # Spam detection
+    is_spam = Column(Boolean, default=False)
+    spam_score = Column(Float, default=0.0)
+
+    # Notes
+    notes = Column(Text)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    read_at = Column(DateTime)
+
+    # Relationships
+    form = relationship("Form", back_populates="submissions")

@@ -8,7 +8,7 @@ import {
   Sparkles, Home, FolderOpen, Layers, ShoppingBag, Users, Settings,
   CreditCard, BarChart3, HelpCircle, ChevronLeft, ChevronRight, LogOut,
   Search, Bell, Command, Moon, Sun, Menu, X, Zap, Globe, MessageSquare,
-  FileCode, Palette, Package, Rocket, Star, TrendingUp, ArrowUpRight
+  FileCode, Palette, Package, Rocket, Star, TrendingUp, ArrowUpRight, Inbox
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useProjectStore } from '@/stores/projectStore'
@@ -41,6 +41,12 @@ const navItems: NavItem[] = [
     href: '/dashboard/projects',
     badge: 'New',
     badgeColor: 'bg-forma-500',
+  },
+  {
+    id: 'forms',
+    label: 'Forms',
+    icon: <Inbox className="w-5 h-5" />,
+    href: '/dashboard/forms',
   },
   {
     id: 'components',
