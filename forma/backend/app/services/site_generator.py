@@ -609,6 +609,72 @@ class StaticSiteGenerator:
 })();
 </script>'''
 
+    # Blog JavaScript (blog helpers)
+    BLOG_SCRIPT = '''
+<script>
+(function() {
+  // Forma Blog Handler
+  const FORMA_API = '{api_url}';
+  const PROJECT_ID = '{project_id}';
+
+  // Store project ID globally for blog components
+  window.formaProjectId = PROJECT_ID;
+
+  // Blog API helper
+  window.formaBlog = {
+    getPosts: async function(options = {}) {
+      const params = new URLSearchParams();
+      if (options.category) params.append('category', options.category);
+      if (options.limit) params.append('limit', options.limit);
+      if (options.offset) params.append('offset', options.offset);
+
+      const response = await fetch(FORMA_API + '/public/blog/' + PROJECT_ID + '/posts?' + params);
+      return response.json();
+    },
+
+    getPost: async function(slug) {
+      const response = await fetch(FORMA_API + '/public/blog/' + PROJECT_ID + '/posts/' + slug);
+      if (!response.ok) return null;
+      return response.json();
+    },
+
+    getCategories: async function() {
+      const response = await fetch(FORMA_API + '/public/blog/' + PROJECT_ID + '/categories');
+      return response.json();
+    },
+
+    searchPosts: async function(query) {
+      const response = await fetch(FORMA_API + '/public/blog/' + PROJECT_ID + '/posts?search=' + encodeURIComponent(query));
+      return response.json();
+    },
+
+    formatDate: function(dateStr) {
+      return new Date(dateStr).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    },
+
+    calculateReadTime: function(content) {
+      const words = content.replace(/<[^>]*>/g, '').split(/\\s+/).length;
+      return Math.max(1, Math.ceil(words / 200));
+    }
+  };
+
+  // Handle blog search forms
+  document.querySelectorAll('form[data-blog-search]').forEach(form => {
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const query = new FormData(this).get('search');
+      if (query) {
+        window.location.href = '/blog?search=' + encodeURIComponent(query);
+      }
+    });
+  });
+})();
+</script>'''
+
     # Form handling JavaScript (injected into pages with forms)
     FORM_HANDLER_SCRIPT = '''
 <script>
@@ -1320,6 +1386,220 @@ document.addEventListener('click', function(e) {
   }
 });
 </script>''',
+
+        # Blog/CMS components
+        'blog-list': '''<section class="py-16 px-6 bg-gray-50">
+  <div class="max-w-4xl mx-auto">
+    <div class="text-center mb-12">
+      <h1 class="text-4xl font-bold text-gray-900 mb-4">{title}</h1>
+      <p class="text-gray-600 text-lg">{subtitle}</p>
+    </div>
+    <div class="space-y-8" data-blog-list>
+      {blog_posts}
+    </div>
+    <div class="mt-12 flex justify-center" data-blog-pagination></div>
+  </div>
+</section>''',
+
+        'blog-card': '''<article class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition group">
+  <a href="{post_url}" class="block">
+    <div class="aspect-video bg-gray-100 overflow-hidden">
+      <img src="{featured_image}" alt="{title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+    </div>
+    <div class="p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded-full text-sm font-medium">{category}</span>
+        <span class="text-gray-400 text-sm">{date}</span>
+      </div>
+      <h2 class="text-xl font-bold text-gray-900 mb-2 group-hover:text-indigo-600 transition">{title}</h2>
+      <p class="text-gray-600 line-clamp-2">{excerpt}</p>
+      <div class="flex items-center gap-3 mt-4">
+        <img src="{author_avatar}" alt="{author_name}" class="w-8 h-8 rounded-full object-cover" />
+        <span class="text-sm text-gray-500">By {author_name}</span>
+        <span class="text-sm text-gray-400 ml-auto">{read_time} min read</span>
+      </div>
+    </div>
+  </a>
+</article>''',
+
+        'blog-post': '''<article class="py-12 px-6 bg-white">
+  <div class="max-w-3xl mx-auto">
+    <header class="mb-8">
+      <nav class="text-sm text-gray-500 mb-4">
+        <a href="{blog_url}" class="hover:text-indigo-600">Blog</a>
+        <span class="mx-2">/</span>
+        <a href="{category_url}" class="hover:text-indigo-600">{category}</a>
+      </nav>
+      <h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">{title}</h1>
+      <div class="flex items-center gap-4 text-gray-500">
+        <div class="flex items-center gap-3">
+          <img src="{author_avatar}" alt="{author_name}" class="w-10 h-10 rounded-full object-cover" />
+          <div>
+            <div class="font-medium text-gray-900">{author_name}</div>
+            <div class="text-sm">{date} &middot; {read_time} min read</div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <div class="mb-8 rounded-2xl overflow-hidden">
+      <img src="{featured_image}" alt="{title}" class="w-full aspect-video object-cover" />
+    </div>
+    <div class="prose prose-lg max-w-none" data-blog-content>
+      {content}
+    </div>
+    <footer class="mt-12 pt-8 border-t border-gray-200">
+      <div class="flex items-center justify-between">
+        <div class="flex gap-2">
+          {tags}
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-gray-500 text-sm">Share:</span>
+          <a href="https://twitter.com/intent/tweet?url={share_url}&text={share_title}" target="_blank" class="text-gray-400 hover:text-blue-400">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/></svg>
+          </a>
+          <a href="https://www.linkedin.com/shareArticle?mini=true&url={share_url}&title={share_title}" target="_blank" class="text-gray-400 hover:text-blue-700">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+          </a>
+        </div>
+      </div>
+    </footer>
+  </div>
+</article>''',
+
+        'blog-sidebar': '''<aside class="space-y-8">
+  <div class="bg-white rounded-2xl p-6 shadow-sm">
+    <h3 class="font-semibold text-gray-900 mb-4">Search</h3>
+    <form class="relative">
+      <input type="search" placeholder="Search articles..." class="w-full px-4 py-3 pr-10 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" />
+      <button type="submit" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-indigo-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      </button>
+    </form>
+  </div>
+  <div class="bg-white rounded-2xl p-6 shadow-sm">
+    <h3 class="font-semibold text-gray-900 mb-4">Categories</h3>
+    <nav class="space-y-2" data-blog-categories>
+      {categories}
+    </nav>
+  </div>
+  <div class="bg-white rounded-2xl p-6 shadow-sm">
+    <h3 class="font-semibold text-gray-900 mb-4">Recent Posts</h3>
+    <div class="space-y-4" data-blog-recent>
+      {recent_posts}
+    </div>
+  </div>
+  <div class="bg-white rounded-2xl p-6 shadow-sm">
+    <h3 class="font-semibold text-gray-900 mb-4">Tags</h3>
+    <div class="flex flex-wrap gap-2" data-blog-tags>
+      {tags}
+    </div>
+  </div>
+</aside>''',
+
+        'blog-comments': '''<section class="py-8 border-t border-gray-200 mt-12" data-blog-comments="{post_id}">
+  <h3 class="text-2xl font-bold text-gray-900 mb-8">Comments (<span data-comment-count>0</span>)</h3>
+  <form data-comment-form class="mb-8 space-y-4" data-auth-required-form>
+    <div data-auth-show style="display:none">
+      <textarea name="content" rows="4" required placeholder="Share your thoughts..." class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition resize-none"></textarea>
+      <button type="submit" class="mt-3 px-6 py-3 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition">Post Comment</button>
+    </div>
+    <div data-auth-hide>
+      <p class="text-gray-500">Please <a href="{login_url}" class="text-indigo-600 hover:text-indigo-700 font-medium">sign in</a> to leave a comment.</p>
+    </div>
+  </form>
+  <div data-comments-list class="space-y-6">
+    {comments}
+  </div>
+</section>
+<script>
+(function() {
+  const section = document.querySelector('[data-blog-comments]');
+  if (!section) return;
+  const postId = section.dataset.blogComments;
+  const form = section.querySelector('[data-comment-form]');
+  const list = section.querySelector('[data-comments-list]');
+  const countEl = section.querySelector('[data-comment-count]');
+
+  async function loadComments() {
+    try {
+      const res = await fetch('/public/blog/' + window.formaProjectId + '/posts/' + postId + '/comments');
+      const data = await res.json();
+      countEl.textContent = data.total;
+      list.innerHTML = data.comments.map(c => `
+        <div class="bg-gray-50 rounded-xl p-6">
+          <div class="flex items-center gap-3 mb-3">
+            <img src="${c.author_avatar || 'https://placehold.co/40'}" class="w-10 h-10 rounded-full object-cover" />
+            <div>
+              <div class="font-medium text-gray-900">${c.author_name}</div>
+              <div class="text-sm text-gray-500">${new Date(c.created_at).toLocaleDateString()}</div>
+            </div>
+          </div>
+          <p class="text-gray-700">${c.content}</p>
+        </div>
+      `).join('');
+    } catch (e) { console.error('Failed to load comments', e); }
+  }
+
+  form?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const content = new FormData(this).get('content');
+    const token = window.formaAuth?.getToken();
+    if (!token) { alert('Please sign in first'); return; }
+    try {
+      const res = await fetch('/public/blog/' + window.formaProjectId + '/posts/' + postId + '/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ content })
+      });
+      if (res.ok) {
+        this.reset();
+        loadComments();
+      } else {
+        const err = await res.json();
+        alert(err.detail || 'Failed to post comment');
+      }
+    } catch (e) { alert('Failed to post comment'); }
+  });
+
+  loadComments();
+})();
+</script>''',
+
+        'blog-category-list': '''<section class="py-16 px-6 bg-gray-50">
+  <div class="max-w-4xl mx-auto">
+    <div class="text-center mb-12">
+      <h1 class="text-4xl font-bold text-gray-900 mb-4">Category: {category_name}</h1>
+      <p class="text-gray-600">{category_description}</p>
+    </div>
+    <div class="space-y-8" data-blog-category-posts>
+      {posts}
+    </div>
+  </div>
+</section>''',
+
+        'blog-author': '''<section class="py-16 px-6 bg-white">
+  <div class="max-w-4xl mx-auto">
+    <div class="flex items-center gap-6 mb-12 p-8 bg-gray-50 rounded-2xl">
+      <img src="{author_avatar}" alt="{author_name}" class="w-24 h-24 rounded-full object-cover" />
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 mb-2">{author_name}</h1>
+        <p class="text-gray-600 mb-3">{author_bio}</p>
+        <div class="flex gap-3">
+          {author_social_links}
+        </div>
+      </div>
+    </div>
+    <h2 class="text-xl font-semibold text-gray-900 mb-6">Articles by {author_name}</h2>
+    <div class="space-y-8" data-blog-author-posts>
+      {posts}
+    </div>
+  </div>
+</section>''',
+
+        'blog-rss-link': '''<a href="{rss_url}" class="inline-flex items-center gap-2 text-orange-500 hover:text-orange-600" title="RSS Feed">
+  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20C5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1Z"/></svg>
+  <span>RSS Feed</span>
+</a>''',
     }
 
     # Default props for components
@@ -1570,6 +1850,82 @@ document.addEventListener('click', function(e) {
             'profile_url': '/profile',
             'settings_url': '/settings',
             'login_url': '/login'
+        },
+        'blog-list': {
+            'title': 'Blog',
+            'subtitle': 'Latest articles and updates',
+            'blog_posts': '''
+      <article class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition">
+        <div class="aspect-video bg-gray-100"></div>
+        <div class="p-6">
+          <span class="px-3 py-1 bg-indigo-100 text-indigo-600 rounded-full text-sm font-medium">Technology</span>
+          <h2 class="text-xl font-bold text-gray-900 my-2">Sample Blog Post Title</h2>
+          <p class="text-gray-600 line-clamp-2">This is a sample excerpt from your blog post...</p>
+        </div>
+      </article>'''
+        },
+        'blog-card': {
+            'title': 'Sample Post',
+            'excerpt': 'This is a sample excerpt from your blog post...',
+            'category': 'Technology',
+            'date': 'Jan 25, 2026',
+            'author_name': 'Author Name',
+            'author_avatar': 'https://placehold.co/40',
+            'featured_image': 'https://placehold.co/600x400',
+            'post_url': '/blog/sample-post',
+            'read_time': '5'
+        },
+        'blog-post': {
+            'title': 'Sample Blog Post',
+            'content': '<p>Your blog content goes here...</p>',
+            'category': 'Technology',
+            'category_url': '/blog/category/technology',
+            'blog_url': '/blog',
+            'date': 'January 25, 2026',
+            'author_name': 'Author Name',
+            'author_avatar': 'https://placehold.co/40',
+            'featured_image': 'https://placehold.co/1200x600',
+            'read_time': '5',
+            'tags': '<span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm">Technology</span>',
+            'share_url': '',
+            'share_title': ''
+        },
+        'blog-sidebar': {
+            'categories': '''
+      <a href="/blog/category/technology" class="flex items-center justify-between py-2 text-gray-600 hover:text-indigo-600">
+        <span>Technology</span><span class="text-gray-400">12</span>
+      </a>
+      <a href="/blog/category/business" class="flex items-center justify-between py-2 text-gray-600 hover:text-indigo-600">
+        <span>Business</span><span class="text-gray-400">8</span>
+      </a>''',
+            'recent_posts': '''
+      <a href="/blog/recent-post" class="block hover:text-indigo-600">
+        <div class="text-sm font-medium text-gray-900">Recent Post Title</div>
+        <div class="text-xs text-gray-500">Jan 20, 2026</div>
+      </a>''',
+            'tags': '''
+      <a href="/blog/tag/startup" class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm hover:bg-indigo-100 hover:text-indigo-600">startup</a>
+      <a href="/blog/tag/ai" class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm hover:bg-indigo-100 hover:text-indigo-600">ai</a>'''
+        },
+        'blog-comments': {
+            'post_id': '',
+            'login_url': '/login',
+            'comments': ''
+        },
+        'blog-category-list': {
+            'category_name': 'Technology',
+            'category_description': 'Articles about technology and innovation',
+            'posts': ''
+        },
+        'blog-author': {
+            'author_name': 'Author Name',
+            'author_avatar': 'https://placehold.co/100',
+            'author_bio': 'Author bio goes here...',
+            'author_social_links': '',
+            'posts': ''
+        },
+        'blog-rss-link': {
+            'rss_url': '/blog/feed.xml'
         }
     }
 
@@ -1664,6 +2020,13 @@ document.addEventListener('click', function(e) {
             for c in components
         )
 
+        # Check if page has blog components
+        blog_types = ['blog-list', 'blog-card', 'blog-post', 'blog-sidebar', 'blog-comments', 'blog-category-list', 'blog-author', 'blog-rss-link']
+        has_blog = any(
+            c.get('type', '') in blog_types
+            for c in components
+        )
+
         # Generate scripts
         scripts = []
 
@@ -1695,23 +2058,85 @@ document.addEventListener('click', function(e) {
                 project_id=self.project_id
             ))
 
+        # Blog script (if page has blog components)
+        if has_blog and self.project_id:
+            scripts.append(self.BLOG_SCRIPT.format(
+                api_url=self.api_url,
+                project_id=self.project_id
+            ))
+
         scripts_html = '\n'.join(scripts)
+
+        # Get SEO data from page
+        seo = page_data.get('seo', {})
+        title = seo.get('title', f"{page_name} | {self.project_name}")
+        description = seo.get('description', f"{page_name} - {self.project_name}")
+        keywords = seo.get('keywords', '')
+        canonical = seo.get('canonical_url', '')
+        robots = seo.get('robots', 'index, follow')
+        og_title = seo.get('og_title', title)
+        og_description = seo.get('og_description', description)
+        og_image = seo.get('og_image_url', '')
+        og_type = seo.get('og_type', 'website')
+        twitter_card = seo.get('twitter_card_type', 'summary_large_image')
+        twitter_title = seo.get('twitter_title', title)
+        twitter_description = seo.get('twitter_description', description)
+        twitter_image = seo.get('twitter_image_url', og_image)
+        structured_data = seo.get('structured_data')
+        language = seo.get('language', 'en')
+
+        # Build meta tags
+        meta_tags = []
+
+        if description:
+            meta_tags.append(f'  <meta name="description" content="{description}">')
+        if keywords:
+            meta_tags.append(f'  <meta name="keywords" content="{keywords}">')
+        if robots:
+            meta_tags.append(f'  <meta name="robots" content="{robots}">')
+        if canonical:
+            meta_tags.append(f'  <link rel="canonical" href="{canonical}">')
+
+        # Open Graph
+        meta_tags.append(f'  <meta property="og:type" content="{og_type}">')
+        meta_tags.append(f'  <meta property="og:title" content="{og_title}">')
+        meta_tags.append(f'  <meta property="og:description" content="{og_description}">')
+        if og_image:
+            meta_tags.append(f'  <meta property="og:image" content="{og_image}">')
+        meta_tags.append(f'  <meta property="og:site_name" content="{self.project_name}">')
+
+        # Twitter Card
+        meta_tags.append(f'  <meta name="twitter:card" content="{twitter_card}">')
+        meta_tags.append(f'  <meta name="twitter:title" content="{twitter_title}">')
+        meta_tags.append(f'  <meta name="twitter:description" content="{twitter_description}">')
+        if twitter_image:
+            meta_tags.append(f'  <meta name="twitter:image" content="{twitter_image}">')
+
+        meta_html = '\n'.join(meta_tags)
+
+        # Structured data (JSON-LD)
+        json_ld = ''
+        if structured_data:
+            json_ld = f'''
+  <script type="application/ld+json">
+{json.dumps(structured_data, indent=2)}
+  </script>'''
 
         # Generate HTML document
         html = f'''<!DOCTYPE html>
-<html lang="en">
+<html lang="{language}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="{page_name} - {self.project_name}">
-  <title>{page_name} | {self.project_name}</title>
+{meta_html}
+  <title>{title}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     /* Smooth scrolling */
     html {{ scroll-behavior: smooth; }}
     /* Custom focus styles */
     :focus-visible {{ outline: 2px solid #6366f1; outline-offset: 2px; }}
-  </style>
+  </style>{json_ld}
 </head>
 <body class="min-h-screen bg-white">
 {body_content}

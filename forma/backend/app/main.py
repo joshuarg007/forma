@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.db.database import engine, Base
-from app.api import auth, projects, components, ai, billing, marketplace, github, templates, teams, uploads, websocket, pages, hosting, forms, analytics, ecommerce, site_auth
+from app.api import auth, projects, components, ai, billing, marketplace, github, templates, teams, uploads, websocket, pages, hosting, forms, analytics, ecommerce, site_auth, blog, webhooks, seo, email, experiments, media, versions, comments, design_system, scheduled, import_export, performance, notifications, activity, localization, snippets, integrations, backups
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -72,6 +72,31 @@ app.include_router(analytics.tracking_router)
 app.include_router(ecommerce.router)
 app.include_router(ecommerce.public_router)
 app.include_router(site_auth.router)
+app.include_router(blog.router)
+app.include_router(blog.public_router)
+app.include_router(webhooks.router)
+app.include_router(webhooks.api_router)
+app.include_router(seo.router)
+app.include_router(seo.public_router)
+app.include_router(email.router)
+app.include_router(experiments.router)
+app.include_router(experiments.public_router)
+app.include_router(media.router)
+app.include_router(versions.router)
+app.include_router(comments.router)
+app.include_router(design_system.router)
+app.include_router(scheduled.router)
+app.include_router(import_export.router)
+app.include_router(performance.router)
+app.include_router(performance.public_router)
+app.include_router(notifications.router)
+app.include_router(activity.router)
+app.include_router(activity.user_router)
+app.include_router(localization.router)
+app.include_router(localization.public_router)
+app.include_router(snippets.router)
+app.include_router(integrations.router)
+app.include_router(backups.router)
 
 
 @app.get("/")
