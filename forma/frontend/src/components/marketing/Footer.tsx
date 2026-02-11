@@ -31,8 +31,8 @@ export default function Footer() {
               <Image
                 src="/logos/forma-logo-full.png"
                 alt="FORMA - AI-Powered React App Builder"
-                width={360}
-                height={98}
+                width={550}
+                height={584}
                 className="h-7 w-auto"
               />
             </Link>

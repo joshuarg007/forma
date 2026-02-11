@@ -25,15 +25,15 @@ export default function Nav() {
           <Image
             src="/logos/forma-logo-mark.png"
             alt="FORMA - AI-Powered React App Builder"
-            width={128}
-            height={118}
+            width={550}
+            height={440}
             className="h-8 w-auto md:hidden"
           />
           <Image
             src="/logos/forma-logo-full.png"
             alt="FORMA - AI-Powered React App Builder"
-            width={360}
-            height={98}
+            width={550}
+            height={584}
             className="h-8 w-auto hidden md:block"
           />
         </Link>

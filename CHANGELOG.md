@@ -9,7 +9,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Added - Real-time Collaboration
+- **Live Cursors** - See other users' cursors on the canvas in real-time
+- **Selection Highlighting** - Visual indicators when others select components
+- **Page Presence** - See who's viewing which page
+- **Team Chat** - In-app messaging with collaborators
+- **Color-coded Users** - Each user gets a consistent color for identification
+- **Typing Indicators** - See when others are editing
+- **WebSocket Infrastructure** - Robust connection handling with auto-reconnect
+
+### Added - Figma Integration
+- **Figma Connect** - Link your Figma account to projects
+- **Design Import** - Import frames and components from Figma files
+- **Auto-conversion** - Figma nodes converted to React components
+- **Design Tokens** - Extract colors, typography, and spacing from Figma
+- **Asset Export** - Automatically export vectors and images
+- **Background Processing** - Large file imports run asynchronously
+- **Import History** - Track all imports with status and results
+
+### Added - Enterprise SSO
+- **SAML 2.0** - Support for enterprise SAML identity providers
+- **OIDC** - OpenID Connect integration
+- **Okta** - Pre-configured Okta integration
+- **Azure AD** - Microsoft Azure Active Directory support
+- **Google Workspace** - Google SSO for organizations
+- **Domain Verification** - Restrict SSO to verified email domains
+- **Auto-provisioning** - Automatic user creation on first login
+- **Team Membership** - Auto-join team on SSO login
+
+---
+
+## [0.4.0] - 2026-01-25
+
+### Added - Platform Features (12 New Systems)
+
+**Collaboration & Teams**
+- **Version History** - Page and component version tracking with restore and diff capabilities
+- **Comments System** - Threaded comments with @mentions, reactions (👍❤️🎉😄🤔👎), and resolution workflow
+- **Activity Log** - Full audit trail of all project changes with user, action, and timestamp
+- **Notifications System** - In-app notifications with preferences (email, in-app, push toggles)
+
+**Content Management**
+- **Scheduled Publishing** - Queue pages/components for future publish with status tracking
+- **Localization/i18n** - Multi-language content management with translation import/export
+- **Design System** - Design tokens, themes, and component styles with CSS variable generation
+- **Code Snippets Library** - Reusable code snippets with folders, sharing, and multiple languages
+
+**Developer Experience**
+- **Import/Export** - Full project export (ZIP/JSON) and import with template creation
+- **Integrations Hub** - Connect Slack, Discord, webhooks, and Zapier for notifications
+- **Backup/Restore** - Manual and scheduled backups with restore functionality
+- **Performance Monitoring** - Core Web Vitals tracking, budgets, alerts, and RUM endpoint
+
+### Added - DNS & Hosting
 - Real DNS verification with dnspython (CNAME, A, TXT records)
 - DNS propagation checking across 4 public servers (Google, Cloudflare, Quad9, OpenDNS)
 - Enhanced domains management UI with step-by-step instructions

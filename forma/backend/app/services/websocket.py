@@ -21,14 +21,40 @@ class UserSession:
     project_id: str
     connected_at: datetime = field(default_factory=datetime.utcnow)
     cursor_position: Optional[dict] = None
+    selected_component_id: Optional[str] = None
+    current_page_id: Optional[str] = None
+    color: str = "#3b82f6"  # Default blue
 
 
 class WebSocketMessage(BaseModel):
     """WebSocket message format."""
-    type: str  # "cursor_move", "component_update", "component_add", "component_delete", "chat", "presence"
+    type: str  # "cursor_move", "component_update", "component_add", "component_delete", "chat", "presence", "selection", "page_change"
     payload: dict
     sender_id: Optional[str] = None
     timestamp: Optional[str] = None
+
+
+# User colors for collaboration
+USER_COLORS = [
+    "#ef4444",  # red
+    "#f97316",  # orange
+    "#eab308",  # yellow
+    "#22c55e",  # green
+    "#14b8a6",  # teal
+    "#06b6d4",  # cyan
+    "#3b82f6",  # blue
+    "#8b5cf6",  # violet
+    "#d946ef",  # fuchsia
+    "#ec4899",  # pink
+]
+
+
+def get_user_color(user_id: str) -> str:
+    """Generate consistent color for a user based on their ID."""
+    hash_val = 0
+    for char in user_id:
+        hash_val = ord(char) + ((hash_val << 5) - hash_val)
+    return USER_COLORS[abs(hash_val) % len(USER_COLORS)]
 
 
 class CollaborationManager:
@@ -54,7 +80,8 @@ class CollaborationManager:
             user_id=user_id,
             username=username,
             websocket=websocket,
-            project_id=project_id
+            project_id=project_id,
+            color=get_user_color(user_id)
         )
 
         async with self._lock:
@@ -130,7 +157,10 @@ class CollaborationManager:
                 {
                     "user_id": session.user_id,
                     "username": session.username,
-                    "cursor_position": session.cursor_position
+                    "cursor_position": session.cursor_position,
+                    "selected_component_id": session.selected_component_id,
+                    "current_page_id": session.current_page_id,
+                    "color": session.color,
                 }
                 for session in self.project_connections[project_id].values()
             ]
@@ -208,6 +238,38 @@ class CollaborationManager:
 
             elif message.type == "component_reorder":
                 # Broadcast component reordering
+                await self.broadcast_to_project(
+                    session.project_id,
+                    message,
+                    exclude_user=session.user_id
+                )
+
+            elif message.type == "selection":
+                # Update selected component and broadcast
+                session.selected_component_id = message.payload.get("component_id")
+                message.payload["color"] = session.color
+                message.payload["username"] = session.username
+                await self.broadcast_to_project(
+                    session.project_id,
+                    message,
+                    exclude_user=session.user_id
+                )
+
+            elif message.type == "page_change":
+                # Update current page and broadcast
+                session.current_page_id = message.payload.get("page_id")
+                message.payload["color"] = session.color
+                message.payload["username"] = session.username
+                await self.broadcast_to_project(
+                    session.project_id,
+                    message,
+                    exclude_user=session.user_id
+                )
+
+            elif message.type == "typing":
+                # Broadcast typing indicator (for text editing)
+                message.payload["color"] = session.color
+                message.payload["username"] = session.username
                 await self.broadcast_to_project(
                     session.project_id,
                     message,

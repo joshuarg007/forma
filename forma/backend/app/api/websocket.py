@@ -127,3 +127,31 @@ async def get_project_collaborators(
     """Get list of users currently connected to a project."""
     users = await collaboration_manager.get_project_users(project_id)
     return {"users": users, "count": len(users)}
+
+
+@router.get("/ws/project/{project_id}/presence")
+async def get_project_presence(
+    project_id: str,
+    page_id: str = None,
+    db: Session = Depends(get_db)
+):
+    """Get detailed presence info for a project, optionally filtered by page."""
+    users = await collaboration_manager.get_project_users(project_id)
+
+    if page_id:
+        users = [u for u in users if u.get("current_page_id") == page_id]
+
+    return {
+        "users": users,
+        "count": len(users),
+        "page_id": page_id,
+        "selections": {
+            u["selected_component_id"]: {
+                "user_id": u["user_id"],
+                "username": u["username"],
+                "color": u["color"]
+            }
+            for u in users
+            if u.get("selected_component_id")
+        }
+    }

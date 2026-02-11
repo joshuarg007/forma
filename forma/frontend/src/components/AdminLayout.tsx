@@ -183,9 +183,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <Image
                 src="/logos/forma-logo-mark.png"
                 alt="Forma"
-                width={40}
-                height={40}
-                className="w-10 h-10"
+                width={550}
+                height={440}
+                className="w-10 h-10 object-contain"
               />
             ) : (
               <motion.div
@@ -195,8 +195,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <Image
                   src="/logos/forma-logo-full.png"
                   alt="Forma"
-                  width={140}
-                  height={38}
+                  width={550}
+                  height={584}
                   className="h-9 w-auto"
                 />
               </motion.div>

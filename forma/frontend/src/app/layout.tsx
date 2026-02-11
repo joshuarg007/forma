@@ -34,8 +34,14 @@ export const metadata: Metadata = {
     description: 'Build production-ready React applications with AI.',
   },
   icons: {
-    icon: '/logos/forma-favicon.png',
-    apple: '/logos/forma-favicon.png',
+    icon: [
+      { url: '/favicon.ico', sizes: '32x32 64x64' },
+      { url: '/logos/forma-logo-64.png', sizes: '64x64', type: 'image/png' },
+      { url: '/logos/forma-logo-128.png', sizes: '128x128', type: 'image/png' },
+      { url: '/logos/forma-logo-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/logos/forma-logo-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: '/logos/forma-logo-192.png',
   },
 }
 

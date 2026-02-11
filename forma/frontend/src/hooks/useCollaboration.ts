@@ -7,6 +7,9 @@ export interface CollaboratorCursor {
   user_id: string
   username: string
   position: { x: number; y: number } | null
+  selected_component_id: string | null
+  current_page_id: string | null
+  color: string
 }
 
 export interface CollaborationMessage {
@@ -23,6 +26,9 @@ interface UseCollaborationOptions {
   onComponentDelete?: (payload: any) => void
   onComponentReorder?: (payload: any) => void
   onChatMessage?: (payload: any) => void
+  onSelection?: (payload: { user_id: string; component_id: string | null; color: string; username: string }) => void
+  onPageChange?: (payload: { user_id: string; page_id: string; color: string; username: string }) => void
+  onTyping?: (payload: { user_id: string; component_id: string; color: string; username: string }) => void
   enabled?: boolean
 }
 
@@ -33,6 +39,9 @@ export function useCollaboration({
   onComponentDelete,
   onComponentReorder,
   onChatMessage,
+  onSelection,
+  onPageChange,
+  onTyping,
   enabled = true,
 }: UseCollaborationOptions) {
   const wsRef = useRef<WebSocket | null>(null)
@@ -95,6 +104,34 @@ export function useCollaboration({
               onChatMessage?.(message.payload)
               break
 
+            case 'selection':
+              // Update collaborator's selection
+              setCollaborators((prev) =>
+                prev.map((c) =>
+                  c.user_id === message.sender_id
+                    ? { ...c, selected_component_id: message.payload.component_id }
+                    : c
+                )
+              )
+              onSelection?.(message.payload)
+              break
+
+            case 'page_change':
+              // Update collaborator's current page
+              setCollaborators((prev) =>
+                prev.map((c) =>
+                  c.user_id === message.sender_id
+                    ? { ...c, current_page_id: message.payload.page_id }
+                    : c
+                )
+              )
+              onPageChange?.(message.payload)
+              break
+
+            case 'typing':
+              onTyping?.(message.payload)
+              break
+
             case 'pong':
               // Keep-alive response
               break
@@ -131,7 +168,7 @@ export function useCollaboration({
       console.error('Failed to create WebSocket:', e)
       setError('Failed to connect')
     }
-  }, [projectId, enabled, onComponentUpdate, onComponentAdd, onComponentDelete, onComponentReorder, onChatMessage])
+  }, [projectId, enabled, onComponentUpdate, onComponentAdd, onComponentDelete, onComponentReorder, onChatMessage, onSelection, onPageChange, onTyping])
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -178,6 +215,18 @@ export function useCollaboration({
     sendMessage('chat', { message })
   }, [sendMessage])
 
+  const sendSelection = useCallback((componentId: string | null) => {
+    sendMessage('selection', { component_id: componentId })
+  }, [sendMessage])
+
+  const sendPageChange = useCallback((pageId: string) => {
+    sendMessage('page_change', { page_id: pageId })
+  }, [sendMessage])
+
+  const sendTyping = useCallback((componentId: string) => {
+    sendMessage('typing', { component_id: componentId })
+  }, [sendMessage])
+
   // Connect on mount
   useEffect(() => {
     connect()
@@ -205,6 +254,9 @@ export function useCollaboration({
     sendComponentDelete,
     sendComponentReorder,
     sendChat,
+    sendSelection,
+    sendPageChange,
+    sendTyping,
     disconnect,
     reconnect: connect,
   }

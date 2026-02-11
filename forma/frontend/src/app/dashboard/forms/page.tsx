@@ -13,7 +13,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useProjectStore } from '@/stores/projectStore'
 import AdminLayout from '@/components/AdminLayout'
 import ConfirmDialog from '@/components/ConfirmDialog'
-import api from '@/lib/api'
+import { api } from '@/lib/api'
 
 interface Form {
   id: string

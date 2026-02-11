@@ -1,12 +1,15 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { Users, Circle } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Users, Circle, Eye } from 'lucide-react'
 
 interface Collaborator {
   user_id: string
   username: string
   cursor_position?: { x: number; y: number } | null
+  selected_component_id?: string | null
+  current_page_id?: string | null
+  color?: string
 }
 
 interface CollaboratorPresenceProps {
@@ -64,7 +67,7 @@ export function CollaboratorPresence({
           >
             <div
               className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-medium ring-2 ring-forma-900"
-              style={{ backgroundColor: getUserColor(collaborator.user_id) }}
+              style={{ backgroundColor: collaborator.color || getUserColor(collaborator.user_id) }}
             >
               {collaborator.username[0].toUpperCase()}
             </div>
@@ -110,7 +113,7 @@ export function CollaboratorCursors({
       {others.map((collaborator) => {
         if (!collaborator.cursor_position) return null
 
-        const color = getUserColor(collaborator.user_id)
+        const color = collaborator.color || getUserColor(collaborator.user_id)
 
         return (
           <motion.div
@@ -154,6 +157,157 @@ export function CollaboratorCursors({
           </motion.div>
         )
       })}
+    </div>
+  )
+}
+
+// Selection highlight overlay for components being edited by others
+export function CollaboratorSelections({
+  collaborators,
+  currentUserId,
+  getComponentElement,
+}: {
+  collaborators: Collaborator[]
+  currentUserId?: string
+  getComponentElement: (componentId: string) => HTMLElement | null
+}) {
+  const selectingOthers = collaborators.filter(
+    (c) => c.user_id !== currentUserId && c.selected_component_id
+  )
+
+  return (
+    <AnimatePresence>
+      {selectingOthers.map((collaborator) => {
+        if (!collaborator.selected_component_id) return null
+
+        const element = getComponentElement(collaborator.selected_component_id)
+        if (!element) return null
+
+        const rect = element.getBoundingClientRect()
+        const color = collaborator.color || getUserColor(collaborator.user_id)
+
+        return (
+          <motion.div
+            key={`selection-${collaborator.user_id}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="pointer-events-none fixed z-40"
+            style={{
+              left: rect.left - 2,
+              top: rect.top - 2,
+              width: rect.width + 4,
+              height: rect.height + 4,
+              border: `2px solid ${color}`,
+              borderRadius: '4px',
+            }}
+          >
+            {/* User label */}
+            <div
+              className="absolute -top-6 left-0 px-2 py-0.5 rounded text-xs text-white font-medium whitespace-nowrap flex items-center gap-1"
+              style={{ backgroundColor: color }}
+            >
+              <Eye className="w-3 h-3" />
+              {collaborator.username}
+            </div>
+          </motion.div>
+        )
+      })}
+    </AnimatePresence>
+  )
+}
+
+// Typing indicator for when someone is editing text
+export function CollaboratorTypingIndicator({
+  collaborators,
+  currentUserId,
+  currentPageId,
+}: {
+  collaborators: Collaborator[]
+  currentUserId?: string
+  currentPageId?: string
+}) {
+  const othersOnPage = collaborators.filter(
+    (c) =>
+      c.user_id !== currentUserId &&
+      c.current_page_id === currentPageId &&
+      c.selected_component_id
+  )
+
+  if (othersOnPage.length === 0) return null
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 bg-forma-800/90 rounded-lg">
+      <div className="flex -space-x-1">
+        {othersOnPage.slice(0, 3).map((c) => (
+          <div
+            key={c.user_id}
+            className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-medium ring-1 ring-forma-900"
+            style={{ backgroundColor: c.color || getUserColor(c.user_id) }}
+          >
+            {c.username[0].toUpperCase()}
+          </div>
+        ))}
+      </div>
+      <span className="text-xs text-white/60">
+        {othersOnPage.length === 1
+          ? `${othersOnPage[0].username} is editing`
+          : `${othersOnPage.length} people editing`}
+      </span>
+      <span className="flex gap-0.5">
+        <motion.span
+          animate={{ opacity: [0, 1, 0] }}
+          transition={{ repeat: Infinity, duration: 1.4, delay: 0 }}
+          className="w-1 h-1 bg-white/60 rounded-full"
+        />
+        <motion.span
+          animate={{ opacity: [0, 1, 0] }}
+          transition={{ repeat: Infinity, duration: 1.4, delay: 0.2 }}
+          className="w-1 h-1 bg-white/60 rounded-full"
+        />
+        <motion.span
+          animate={{ opacity: [0, 1, 0] }}
+          transition={{ repeat: Infinity, duration: 1.4, delay: 0.4 }}
+          className="w-1 h-1 bg-white/60 rounded-full"
+        />
+      </span>
+    </div>
+  )
+}
+
+// Page presence - who's on which page
+export function PagePresenceIndicator({
+  collaborators,
+  currentUserId,
+  pageId,
+}: {
+  collaborators: Collaborator[]
+  currentUserId?: string
+  pageId: string
+}) {
+  const othersOnPage = collaborators.filter(
+    (c) => c.user_id !== currentUserId && c.current_page_id === pageId
+  )
+
+  if (othersOnPage.length === 0) return null
+
+  return (
+    <div className="flex -space-x-1.5">
+      {othersOnPage.slice(0, 3).map((c) => (
+        <div
+          key={c.user_id}
+          className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-medium ring-1 ring-forma-800"
+          style={{ backgroundColor: c.color || getUserColor(c.user_id) }}
+          title={c.username}
+        >
+          {c.username[0].toUpperCase()}
+        </div>
+      ))}
+      {othersOnPage.length > 3 && (
+        <div className="w-4 h-4 rounded-full bg-forma-600 flex items-center justify-center text-white text-[8px] font-medium ring-1 ring-forma-800">
+          +{othersOnPage.length - 3}
+        </div>
+      )}
     </div>
   )
 }

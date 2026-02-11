@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.db.database import engine, Base
-from app.api import auth, projects, components, ai, billing, marketplace, github, templates, teams, uploads, websocket, pages, hosting, forms, analytics, ecommerce, site_auth, blog, webhooks, seo, email, experiments, media, versions, comments, design_system, scheduled, import_export, performance, notifications, activity, localization, snippets, integrations, backups
+from app.api import auth, projects, components, ai, billing, marketplace, github, templates, teams, uploads, websocket, pages, hosting, forms, analytics, ecommerce, site_auth, blog, webhooks, seo, email, experiments, media, versions, comments, design_system, scheduled, import_export, performance, notifications, activity, localization, snippets, integrations, backups, figma, enterprise_sso
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -97,6 +97,9 @@ app.include_router(localization.public_router)
 app.include_router(snippets.router)
 app.include_router(integrations.router)
 app.include_router(backups.router)
+app.include_router(figma.router)
+app.include_router(enterprise_sso.router)
+app.include_router(enterprise_sso.admin_router)
 
 
 @app.get("/")

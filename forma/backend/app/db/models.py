@@ -93,6 +93,11 @@ class Project(Base):
     runtime_deployed_at = Column(DateTime, nullable=True)  # Last backend deployment time
     runtime_api_url = Column(String(500), nullable=True)  # e.g., https://api.forma.dev/p/abc123
 
+    # Figma integration
+    figma_token = Column(Text, nullable=True)  # Encrypted Figma access token
+    figma_user_id = Column(String(100), nullable=True)
+    figma_user_email = Column(String(255), nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -3008,3 +3013,117 @@ class RestoreLog(Base):
     backup = relationship("ProjectBackup", foreign_keys=[backup_id], backref="restores")
     pre_restore_backup = relationship("ProjectBackup", foreign_keys=[pre_restore_backup_id])
     restored_by = relationship("User", backref="restore_operations")
+
+
+# =============================================================================
+# FIGMA INTEGRATION
+# =============================================================================
+
+class FigmaImportStatus(str, PyEnum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class FigmaImport(Base):
+    """Figma file import record."""
+    __tablename__ = "figma_imports"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    project_id = Column(GUID(), ForeignKey("projects.id"), nullable=False, index=True)
+    user_id = Column(GUID(), ForeignKey("users.id"), nullable=False, index=True)
+
+    # Figma file info
+    file_key = Column(String(100), nullable=False)
+    node_ids = Column(JSON, nullable=True)  # Specific nodes to import
+
+    # Import options
+    import_assets = Column(Boolean, default=True)
+    import_styles = Column(Boolean, default=True)
+    import_components = Column(Boolean, default=True)
+    target_page_id = Column(GUID(), nullable=True)  # Page to import into
+
+    # Status
+    status = Column(Enum(FigmaImportStatus), default=FigmaImportStatus.PENDING)
+    progress = Column(Integer, default=0)  # 0-100
+    message = Column(String(255))
+    error = Column(Text)
+
+    # Results
+    result = Column(JSON, nullable=True)  # Converted components, tokens, assets
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+
+    # Relationships
+    project = relationship("Project", backref="figma_imports")
+    user = relationship("User", backref="figma_imports")
+
+
+# =============================================================================
+# ENTERPRISE SSO
+# =============================================================================
+
+class SSOProvider(str, PyEnum):
+    SAML = "saml"
+    OIDC = "oidc"
+    OKTA = "okta"
+    AZURE_AD = "azure_ad"
+    GOOGLE_WORKSPACE = "google_workspace"
+
+
+class SSOConfig(Base):
+    """SSO configuration for a team."""
+    __tablename__ = "sso_configs"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    team_id = Column(GUID(), ForeignKey("teams.id"), nullable=False, unique=True)
+
+    provider = Column(Enum(SSOProvider), nullable=False)
+    display_name = Column(String(100))  # "Company Okta"
+    enabled = Column(Boolean, default=False)
+
+    # SAML settings
+    idp_entity_id = Column(String(500))
+    idp_sso_url = Column(String(500))
+    idp_certificate = Column(Text)  # X.509 certificate
+
+    # OIDC settings
+    client_id = Column(String(255))
+    client_secret = Column(Text)  # Encrypted
+    authorization_url = Column(String(500))
+    token_url = Column(String(500))
+    userinfo_url = Column(String(500))
+    scopes = Column(String(255), default="openid profile email")
+
+    # Domain verification
+    allowed_domains = Column(JSON, default=list)  # ["company.com", "subsidiary.com"]
+
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    team = relationship("Team", backref="sso_config", uselist=False)
+
+
+class SSOSession(Base):
+    """Temporary session for SSO login flow."""
+    __tablename__ = "sso_sessions"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    sso_config_id = Column(GUID(), ForeignKey("sso_configs.id"), nullable=False)
+
+    state = Column(String(100), nullable=False, unique=True, index=True)
+    email = Column(String(255))
+    redirect_url = Column(String(500))
+
+    used = Column(Boolean, default=False)
+    expires_at = Column(DateTime, nullable=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    sso_config = relationship("SSOConfig", backref="sessions")

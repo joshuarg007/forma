@@ -37,6 +37,20 @@ class Settings(BaseSettings):
     github_client_secret: str = ""
     github_redirect_uri: str = "http://localhost:3000/auth/github/callback"
 
+    # Google OAuth
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = "http://localhost:3000/auth/google/callback"
+
+    # Facebook OAuth
+    facebook_client_id: str = ""
+    facebook_client_secret: str = ""
+    facebook_redirect_uri: str = "http://localhost:3000/auth/facebook/callback"
+
+    # API base URL (for OAuth callbacks)
+    api_base_url: str = "http://localhost:8000"
+    frontend_url: str = "http://localhost:3000"
+
     # Email (SendGrid)
     sendgrid_api_key: str = ""
     from_email: str = "noreply@forma.app"
