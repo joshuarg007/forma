@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.db.database import engine, Base
-from app.api import auth, projects, components, ai, billing, marketplace, github, templates, teams, uploads, websocket, pages, hosting, forms, analytics, ecommerce, site_auth, blog, webhooks, seo, email, experiments, media, versions, comments, design_system, scheduled, import_export, performance, notifications, activity, localization, snippets, integrations, backups, figma, enterprise_sso
+from app.api import auth, projects, components, ai, billing, marketplace, github, templates, teams, uploads, websocket, pages, hosting, forms, menus, analytics, ecommerce, site_auth, blog, webhooks, seo, email, experiments, media, versions, comments, design_system, scheduled, import_export, performance, notifications, activity, localization, snippets, integrations, backups, figma, enterprise_sso
 
 logger = logging.getLogger("forma")
 
@@ -71,6 +71,7 @@ app.include_router(hosting.router)
 app.include_router(hosting.subdomain_router)
 app.include_router(forms.router)
 app.include_router(forms.public_router)
+app.include_router(menus.router)
 app.include_router(analytics.router)
 app.include_router(analytics.tracking_router)
 app.include_router(ecommerce.router)

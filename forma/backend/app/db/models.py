@@ -163,6 +163,24 @@ class Page(Base):
     parent_layout = relationship("Page", remote_side=[id], foreign_keys=[parent_layout_id])
 
 
+class Menu(Base):
+    """Reusable navigation menus (project-scoped)."""
+    __tablename__ = "menus"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    project_id = Column(GUID(), ForeignKey("projects.id"), nullable=False)
+    name = Column(String(255), nullable=False)
+    slug = Column(String(255), nullable=False)
+    description = Column(Text)
+    items = Column(JSON, default=list)  # Array of MenuItem objects
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    project = relationship("Project", backref="menus")
+
+
 class Component(Base):
     __tablename__ = "components"
 
@@ -2572,7 +2590,7 @@ class ActivityLog(Base):
     # Change details
     description = Column(Text)  # Human-readable description
     changes = Column(JSON)  # {field: {old: x, new: y}, ...}
-    metadata = Column(JSON, default=dict)  # Additional context
+    activity_metadata = Column("metadata", JSON, default=dict)  # Additional context
 
     # Request context
     ip_address = Column(String(50))
@@ -3060,6 +3078,44 @@ class FigmaImport(Base):
     # Relationships
     project = relationship("Project", backref="figma_imports")
     user = relationship("User", backref="figma_imports")
+
+
+# =============================================================================
+# TEAMS
+# =============================================================================
+
+class Team(Base):
+    """Team/organization for multi-user workspaces."""
+    __tablename__ = "teams"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    name = Column(String(100), nullable=False)
+    slug = Column(String(100), unique=True, nullable=False)
+    owner_id = Column(GUID(), ForeignKey("users.id"), nullable=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    owner = relationship("User", backref="owned_teams", foreign_keys=[owner_id])
+
+
+class TeamMember(Base):
+    """Team membership."""
+    __tablename__ = "team_members"
+
+    id = Column(GUID(), primary_key=True, default=uuid.uuid4)
+    team_id = Column(GUID(), ForeignKey("teams.id"), nullable=False, index=True)
+    user_id = Column(GUID(), ForeignKey("users.id"), nullable=False, index=True)
+    role = Column(String(20), default="member")  # owner, admin, member
+    status = Column(String(20), default="active")  # active, invited
+    invited_by_id = Column(GUID(), ForeignKey("users.id"), nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    team = relationship("Team", backref="members")
+    user = relationship("User", backref="team_memberships", foreign_keys=[user_id])
 
 
 # =============================================================================

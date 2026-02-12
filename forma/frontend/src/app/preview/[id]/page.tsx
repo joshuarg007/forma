@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import CustomCursor from '@/components/ui/CustomCursor'
 import { useDataBinding, mapDataToProps, DataBindingConfig } from '@/hooks/useDataBinding'
+import { api } from '@/lib/api'
 
 interface CanvasComponent {
   id: string
@@ -91,29 +92,54 @@ const componentRenderers: Record<string, (props: any) => JSX.Element> = {
     </section>
   ),
 
-  'navbar': () => (
-    <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg" />
-          <span className="font-bold text-xl text-gray-900">Brand</span>
+  'navbar': ({ content, projectMenus }: any) => {
+    const menuId = content?.menu
+    const menu = menuId && projectMenus?.[menuId]
+    const menuItems = menu?.items || []
+    const brand = content?.brand || 'Brand'
+    // Fall back to comma-separated links if no menu selected
+    const fallbackLinks = content?.links ? content.links.split(',').map((l: string) => l.trim()).filter(Boolean) : []
+    const hasMenu = menuItems.length > 0
+    return (
+      <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-indigo-600 rounded-lg" />
+            <span className="font-bold text-xl text-gray-900">{brand}</span>
+          </div>
+          <div className="hidden md:flex items-center gap-8">
+            {hasMenu ? menuItems.map((item: any) => (
+              <a
+                key={item.id}
+                href={item.type === 'page' ? `?page=${item.page_slug || ''}` : (item.url || '#')}
+                target={item.open_new_tab ? '_blank' : undefined}
+                rel={item.open_new_tab ? 'noopener noreferrer' : undefined}
+                className="text-gray-600 hover:text-gray-900 transition"
+              >
+                {item.label}
+              </a>
+            )) : fallbackLinks.length > 0 ? fallbackLinks.map((link: string, i: number) => (
+              <a key={i} href="#" className="text-gray-600 hover:text-gray-900 transition">{link}</a>
+            )) : (
+              <>
+                <a href="#" className="text-gray-600 hover:text-gray-900 transition">Home</a>
+                <a href="#" className="text-gray-600 hover:text-gray-900 transition">Features</a>
+                <a href="#" className="text-gray-600 hover:text-gray-900 transition">Pricing</a>
+                <a href="#" className="text-gray-600 hover:text-gray-900 transition">About</a>
+                <a href="#" className="text-gray-600 hover:text-gray-900 transition">Contact</a>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-4">
+            <button className="hidden sm:block text-gray-600 hover:text-gray-900 transition">Sign In</button>
+            <button className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition">
+              Get Started
+            </button>
+          </div>
         </div>
-        <div className="hidden md:flex items-center gap-8">
-          <a href="#" className="text-gray-600 hover:text-gray-900 transition">Home</a>
-          <a href="#" className="text-gray-600 hover:text-gray-900 transition">Features</a>
-          <a href="#" className="text-gray-600 hover:text-gray-900 transition">Pricing</a>
-          <a href="#" className="text-gray-600 hover:text-gray-900 transition">About</a>
-          <a href="#" className="text-gray-600 hover:text-gray-900 transition">Contact</a>
-        </div>
-        <div className="flex items-center gap-4">
-          <button className="hidden sm:block text-gray-600 hover:text-gray-900 transition">Sign In</button>
-          <button className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition">
-            Get Started
-          </button>
-        </div>
-      </div>
-    </nav>
-  ),
+      </nav>
+    )
+  },
 
   'section-features': () => (
     <section className="py-20 px-6 bg-gray-50">
@@ -265,45 +291,77 @@ const componentRenderers: Record<string, (props: any) => JSX.Element> = {
     </section>
   ),
 
-  'footer': () => (
-    <footer className="bg-gray-900 py-16 px-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid md:grid-cols-4 gap-12 mb-12">
-          <div>
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg" />
-              <span className="font-bold text-xl text-white">Brand</span>
+  'footer': ({ content, projectMenus }: any) => {
+    const menuId = content?.menu
+    const menu = menuId && projectMenus?.[menuId]
+    const menuItems = menu?.items || []
+    const brand = content?.brand || 'Brand'
+    const tagline = content?.tagline || 'Building the future of web design, one website at a time.'
+    const copyright = content?.copyright || `\u00A9 ${new Date().getFullYear()} ${brand}. All rights reserved.`
+
+    // Split menu items into columns of ~4 for footer layout
+    const defaultColumns = [
+      { title: 'Product', links: ['Features', 'Pricing', 'Templates', 'Integrations'] },
+      { title: 'Company', links: ['About', 'Blog', 'Careers', 'Press'] },
+      { title: 'Support', links: ['Help Center', 'Contact', 'Status', 'Documentation'] },
+    ]
+
+    return (
+      <footer className="bg-gray-900 py-16 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className={`grid gap-12 mb-12 ${menuItems.length > 0 ? 'md:grid-cols-2' : 'md:grid-cols-4'}`}>
+            <div>
+              <div className="flex items-center gap-2 mb-6">
+                <div className="w-8 h-8 bg-indigo-600 rounded-lg" />
+                <span className="font-bold text-xl text-white">{brand}</span>
+              </div>
+              <p className="text-gray-400">{tagline}</p>
             </div>
-            <p className="text-gray-400">Building the future of web design, one website at a time.</p>
+            {menuItems.length > 0 ? (
+              <div>
+                <h4 className="font-semibold text-white mb-4">Links</h4>
+                <ul className="space-y-3">
+                  {menuItems.map((item: any) => (
+                    <li key={item.id}>
+                      <a
+                        href={item.type === 'page' ? `?page=${item.page_slug || ''}` : (item.url || '#')}
+                        target={item.open_new_tab ? '_blank' : undefined}
+                        rel={item.open_new_tab ? 'noopener noreferrer' : undefined}
+                        className="text-gray-400 hover:text-white transition"
+                      >
+                        {item.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              defaultColumns.map((col, i) => (
+                <div key={i}>
+                  <h4 className="font-semibold text-white mb-4">{col.title}</h4>
+                  <ul className="space-y-3">
+                    {col.links.map((link, j) => (
+                      <li key={j}>
+                        <a href="#" className="text-gray-400 hover:text-white transition">{link}</a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))
+            )}
           </div>
-          {[
-            { title: 'Product', links: ['Features', 'Pricing', 'Templates', 'Integrations'] },
-            { title: 'Company', links: ['About', 'Blog', 'Careers', 'Press'] },
-            { title: 'Support', links: ['Help Center', 'Contact', 'Status', 'Documentation'] },
-          ].map((col, i) => (
-            <div key={i}>
-              <h4 className="font-semibold text-white mb-4">{col.title}</h4>
-              <ul className="space-y-3">
-                {col.links.map((link, j) => (
-                  <li key={j}>
-                    <a href="#" className="text-gray-400 hover:text-white transition">{link}</a>
-                  </li>
-                ))}
-              </ul>
+          <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-gray-500 text-sm">{copyright}</p>
+            <div className="flex gap-6">
+              <a href="#" className="text-gray-400 hover:text-white transition">Privacy</a>
+              <a href="#" className="text-gray-400 hover:text-white transition">Terms</a>
+              <a href="#" className="text-gray-400 hover:text-white transition">Cookies</a>
             </div>
-          ))}
-        </div>
-        <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-gray-500 text-sm">© 2024 Brand. All rights reserved.</p>
-          <div className="flex gap-6">
-            <a href="#" className="text-gray-400 hover:text-white transition">Privacy</a>
-            <a href="#" className="text-gray-400 hover:text-white transition">Terms</a>
-            <a href="#" className="text-gray-400 hover:text-white transition">Cookies</a>
           </div>
         </div>
-      </div>
-    </footer>
-  ),
+      </footer>
+    )
+  },
 
   'card-basic': () => (
     <div className="py-12 px-6 bg-gray-50">
@@ -657,10 +715,12 @@ function DataBoundComponent({
   component,
   Renderer,
   runtimeUrl,
+  projectMenus,
 }: {
   component: CanvasComponent
   Renderer: (props: any) => JSX.Element
   runtimeUrl?: string | null
+  projectMenus?: Record<string, any>
 }) {
   // Resolve the full URL for data binding
   const resolvedConfig = useMemo(() => {
@@ -723,7 +783,7 @@ function DataBoundComponent({
     finalProps.data = Array.isArray(data) ? data : (data.items || data.data || data.results || [])
   }
 
-  return <Renderer name={component.name} {...finalProps} />
+  return <Renderer name={component.name} content={component.content} projectMenus={projectMenus} {...finalProps} />
 }
 
 export default function PreviewPage() {
@@ -737,6 +797,7 @@ export default function PreviewPage() {
   const [loading, setLoading] = useState(true)
   const [showNav, setShowNav] = useState(false)
   const [runtimeUrl, setRuntimeUrl] = useState<string | null>(null)
+  const [projectMenus, setProjectMenus] = useState<Record<string, any>>({})
 
   useEffect(() => {
     // Get preview data from localStorage (set by builder page)
@@ -783,6 +844,20 @@ export default function PreviewPage() {
     setLoading(false)
   }, [projectId, pageSlug])
 
+  // Fetch menus for the project
+  useEffect(() => {
+    if (!projectId) return
+    api.getMenus(projectId)
+      .then(res => {
+        const menuMap: Record<string, any> = {}
+        for (const m of (res.menus || [])) {
+          menuMap[m.id] = m
+        }
+        setProjectMenus(menuMap)
+      })
+      .catch(() => {})
+  }, [projectId])
+
   const navigateToPage = (slug: string) => {
     const page = pages.find(p => p.slug === slug)
     if (page) {
@@ -804,13 +879,14 @@ export default function PreviewPage() {
           component={component}
           Renderer={Renderer}
           runtimeUrl={runtimeUrl}
+          projectMenus={projectMenus}
         />
       )
     }
 
     // Regular rendering without data binding
-    return <Renderer key={component.id} name={component.name} {...component.props} />
-  }, [runtimeUrl])
+    return <Renderer key={component.id} name={component.name} content={component.content} projectMenus={projectMenus} {...component.props} />
+  }, [runtimeUrl, projectMenus])
 
   // Check if any component uses rgb-glow cursor
   const hasRgbGlowCursor = useMemo(() => {

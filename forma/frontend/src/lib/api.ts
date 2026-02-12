@@ -330,6 +330,178 @@ class APIClient {
     })
   }
 
+  // Menus
+  async getMenus(projectId: string) {
+    return this.fetch<{ menus: any[]; total: number }>(`/api/projects/${projectId}/menus`)
+  }
+
+  async getMenu(projectId: string, menuId: string) {
+    return this.fetch<any>(`/api/projects/${projectId}/menus/${menuId}`)
+  }
+
+  async createMenu(projectId: string, data: { name: string; slug?: string; description?: string; items?: any[] }) {
+    return this.fetch<any>(`/api/projects/${projectId}/menus`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateMenu(projectId: string, menuId: string, data: { name?: string; slug?: string; description?: string; items?: any[] }) {
+    return this.fetch<any>(`/api/projects/${projectId}/menus/${menuId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteMenu(projectId: string, menuId: string) {
+    return this.fetch<void>(`/api/projects/${projectId}/menus/${menuId}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Media
+  async getMediaFiles(projectId: string, params?: { folder_id?: string; media_type?: string; search?: string; limit?: number; offset?: number }) {
+    const q = new URLSearchParams()
+    if (params?.folder_id) q.set('folder_id', params.folder_id)
+    if (params?.media_type) q.set('media_type', params.media_type)
+    if (params?.search) q.set('search', params.search)
+    if (params?.limit) q.set('limit', String(params.limit))
+    if (params?.offset) q.set('offset', String(params.offset))
+    const qs = q.toString()
+    return this.fetch<any>(`/api/projects/${projectId}/media/files${qs ? `?${qs}` : ''}`)
+  }
+
+  async getMediaFolders(projectId: string, parentId?: string) {
+    const q = parentId ? `?parent_id=${parentId}` : ''
+    return this.fetch<any>(`/api/projects/${projectId}/media/folders${q}`)
+  }
+
+  async createMediaFolder(projectId: string, data: { name: string; parent_id?: string }) {
+    return this.fetch<any>(`/api/projects/${projectId}/media/folders`, { method: 'POST', body: JSON.stringify(data) })
+  }
+
+  async deleteMediaFile(projectId: string, fileId: string) {
+    return this.fetch<void>(`/api/projects/${projectId}/media/files/${fileId}`, { method: 'DELETE' })
+  }
+
+  async getMediaStats(projectId: string) {
+    return this.fetch<any>(`/api/projects/${projectId}/media/stats`)
+  }
+
+  // Blog
+  async getBlogPosts(projectId: string, params?: { status?: string; category_id?: string; search?: string }) {
+    const q = new URLSearchParams()
+    if (params?.status) q.set('status', params.status)
+    if (params?.category_id) q.set('category_id', params.category_id)
+    if (params?.search) q.set('search', params.search)
+    const qs = q.toString()
+    return this.fetch<any>(`/api/blog/projects/${projectId}/posts${qs ? `?${qs}` : ''}`)
+  }
+
+  async createBlogPost(projectId: string, data: any) {
+    return this.fetch<any>(`/api/blog/projects/${projectId}/posts`, { method: 'POST', body: JSON.stringify(data) })
+  }
+
+  async updateBlogPost(projectId: string, postId: string, data: any) {
+    return this.fetch<any>(`/api/blog/projects/${projectId}/posts/${postId}`, { method: 'PUT', body: JSON.stringify(data) })
+  }
+
+  async deleteBlogPost(projectId: string, postId: string) {
+    return this.fetch<void>(`/api/blog/projects/${projectId}/posts/${postId}`, { method: 'DELETE' })
+  }
+
+  async getBlogCategories(projectId: string) {
+    return this.fetch<any>(`/api/blog/projects/${projectId}/categories`)
+  }
+
+  async createBlogCategory(projectId: string, data: { name: string; slug?: string; description?: string }) {
+    return this.fetch<any>(`/api/blog/projects/${projectId}/categories`, { method: 'POST', body: JSON.stringify(data) })
+  }
+
+  async deleteBlogCategory(projectId: string, categoryId: string) {
+    return this.fetch<void>(`/api/blog/projects/${projectId}/categories/${categoryId}`, { method: 'DELETE' })
+  }
+
+  // E-Commerce / Store
+  async getProducts(projectId: string, params?: { status?: string; search?: string }) {
+    const q = new URLSearchParams()
+    if (params?.status) q.set('status', params.status)
+    if (params?.search) q.set('search', params.search)
+    const qs = q.toString()
+    return this.fetch<any>(`/api/ecommerce/projects/${projectId}/products${qs ? `?${qs}` : ''}`)
+  }
+
+  async createProduct(projectId: string, data: any) {
+    return this.fetch<any>(`/api/ecommerce/projects/${projectId}/products`, { method: 'POST', body: JSON.stringify(data) })
+  }
+
+  async updateProduct(projectId: string, productId: string, data: any) {
+    return this.fetch<any>(`/api/ecommerce/projects/${projectId}/products/${productId}`, { method: 'PUT', body: JSON.stringify(data) })
+  }
+
+  async deleteProduct(projectId: string, productId: string) {
+    return this.fetch<void>(`/api/ecommerce/projects/${projectId}/products/${productId}`, { method: 'DELETE' })
+  }
+
+  async getOrders(projectId: string, params?: { status?: string }) {
+    const q = params?.status ? `?status=${params.status}` : ''
+    return this.fetch<any>(`/api/ecommerce/projects/${projectId}/orders${q}`)
+  }
+
+  async updateOrderStatus(projectId: string, orderId: string, status: string) {
+    return this.fetch<any>(`/api/ecommerce/projects/${projectId}/orders/${orderId}/status`, { method: 'PUT', body: JSON.stringify({ status }) })
+  }
+
+  // SEO
+  async getSEOSettings(projectId: string) {
+    return this.fetch<any>(`/api/projects/${projectId}/seo`)
+  }
+
+  async updateSEOSettings(projectId: string, data: any) {
+    return this.fetch<any>(`/api/projects/${projectId}/seo`, { method: 'PUT', body: JSON.stringify(data) })
+  }
+
+  async getPageSEO(projectId: string, pageId: string) {
+    return this.fetch<any>(`/api/projects/${projectId}/seo/pages/${pageId}`)
+  }
+
+  async updatePageSEO(projectId: string, pageId: string, data: any) {
+    return this.fetch<any>(`/api/projects/${projectId}/seo/pages/${pageId}`, { method: 'PUT', body: JSON.stringify(data) })
+  }
+
+  async analyzeSEO(projectId: string, pageId: string) {
+    return this.fetch<any>(`/api/projects/${projectId}/seo/analyze/${pageId}`)
+  }
+
+  // Integrations
+  async getIntegrationTypes(projectId: string) {
+    return this.fetch<any>(`/api/projects/${projectId}/integrations/types`)
+  }
+
+  async getIntegrations(projectId: string) {
+    return this.fetch<any>(`/api/projects/${projectId}/integrations`)
+  }
+
+  async createIntegration(projectId: string, data: any) {
+    return this.fetch<any>(`/api/projects/${projectId}/integrations`, { method: 'POST', body: JSON.stringify(data) })
+  }
+
+  async updateIntegration(projectId: string, integrationId: string, data: any) {
+    return this.fetch<any>(`/api/projects/${projectId}/integrations/${integrationId}`, { method: 'PUT', body: JSON.stringify(data) })
+  }
+
+  async deleteIntegration(projectId: string, integrationId: string) {
+    return this.fetch<void>(`/api/projects/${projectId}/integrations/${integrationId}`, { method: 'DELETE' })
+  }
+
+  async testIntegration(projectId: string, integrationId: string) {
+    return this.fetch<any>(`/api/projects/${projectId}/integrations/${integrationId}/test`, { method: 'POST' })
+  }
+
+  async toggleIntegration(projectId: string, integrationId: string, enabled: boolean) {
+    return this.fetch<any>(`/api/projects/${projectId}/integrations/${integrationId}/${enabled ? 'enable' : 'disable'}`, { method: 'POST' })
+  }
+
   // AI - Disabled (using local TF.js model instead)
   // These methods are kept for API compatibility but return disabled status
   async generateComponent(_intent: string, _projectId: string, _designSystem?: any) {

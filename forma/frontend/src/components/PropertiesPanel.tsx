@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Type, Palette, Box, Layout, Sparkles, Move, RotateCcw,
@@ -32,7 +33,7 @@ const buttonStyles = [
 const componentContentFields: Record<string, Array<{
   key: string
   label: string
-  type: 'text' | 'textarea' | 'url' | 'image'
+  type: 'text' | 'textarea' | 'url' | 'image' | 'menu'
   placeholder?: string
 }>> = {
   'hero-centered': [
@@ -51,14 +52,17 @@ const componentContentFields: Record<string, Array<{
   ],
   'navbar': [
     { key: 'brand', label: 'Brand Name', type: 'text', placeholder: 'Company' },
+    { key: 'menu', label: 'Menu', type: 'menu' },
     { key: 'links', label: 'Nav Links (comma separated)', type: 'text', placeholder: 'Home, About, Contact' },
   ],
   'navbar-centered': [
     { key: 'brand', label: 'Brand Name', type: 'text', placeholder: 'Company' },
+    { key: 'menu', label: 'Menu', type: 'menu' },
     { key: 'links', label: 'Nav Links (comma separated)', type: 'text', placeholder: 'Home, About, Contact' },
   ],
   'footer': [
     { key: 'brand', label: 'Brand Name', type: 'text', placeholder: 'Company' },
+    { key: 'menu', label: 'Footer Menu', type: 'menu' },
     { key: 'tagline', label: 'Tagline', type: 'text', placeholder: 'Building the future' },
     { key: 'copyright', label: 'Copyright', type: 'text', placeholder: '© 2024 Company' },
   ],
@@ -135,6 +139,7 @@ import {
 import DataBindingPanel from './DataBindingPanel'
 import CodeInjectionPanel from './CodeInjectionPanel'
 import Transform3DPanel from './Transform3DPanel'
+import { api } from '@/lib/api'
 
 interface PropertiesPanelProps {
   component: CanvasComponent | null
@@ -467,6 +472,43 @@ function ButtonGroup({
   )
 }
 
+// Menu selector dropdown for navbar/footer components
+function MenuSelector({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (menuId: string) => void
+}) {
+  const params = useParams()
+  const projectId = params?.id as string
+  const [menus, setMenus] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!projectId) return
+    setLoading(true)
+    api.getMenus(projectId)
+      .then(res => setMenus(res.menus || []))
+      .catch(() => setMenus([]))
+      .finally(() => setLoading(false))
+  }, [projectId])
+
+  return (
+    <select
+      value={value || ''}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-forma-500"
+      style={{ colorScheme: 'dark' }}
+    >
+      <option value="">{loading ? 'Loading...' : 'None (use default links)'}</option>
+      {menus.map((m: any) => (
+        <option key={m.id} value={m.id}>{m.name} ({m.items?.length || 0} items)</option>
+      ))}
+    </select>
+  )
+}
+
 export default function PropertiesPanel({
   component,
   onUpdate,
@@ -656,7 +698,12 @@ export default function PropertiesPanel({
                   {field.type === 'image' && <Image className="w-3 h-3" />}
                   {field.label}
                 </label>
-                {field.type === 'textarea' ? (
+                {field.type === 'menu' ? (
+                  <MenuSelector
+                    value={(component.content?.[field.key] as string) || ''}
+                    onChange={(menuId) => updateContent(field.key, menuId)}
+                  />
+                ) : field.type === 'textarea' ? (
                   <textarea
                     value={(component.content?.[field.key] as string) || ''}
                     onChange={(e) => updateContent(field.key, e.target.value)}
