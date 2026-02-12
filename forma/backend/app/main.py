@@ -1,5 +1,6 @@
 """FORMA - AI-Powered React Builder"""
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -8,6 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.database import engine, Base
 from app.api import auth, projects, components, ai, billing, marketplace, github, templates, teams, uploads, websocket, pages, hosting, forms, analytics, ecommerce, site_auth, blog, webhooks, seo, email, experiments, media, versions, comments, design_system, scheduled, import_export, performance, notifications, activity, localization, snippets, integrations, backups, figma, enterprise_sso
+
+logger = logging.getLogger("forma")
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -21,6 +24,7 @@ async def lifespan(app: FastAPI):
 
     # Start worker as background task
     worker_task = asyncio.create_task(deployment_worker.run_worker_loop(poll_interval=10))
+    logger.info("Deployment worker started")
 
     yield
 

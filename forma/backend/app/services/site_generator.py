@@ -2068,7 +2068,7 @@ document.addEventListener('click', function(e) {
         scripts_html = '\n'.join(scripts)
 
         # Get SEO data from page
-        seo = page_data.get('seo', {})
+        seo = page.get('seo', {})
         title = seo.get('title', f"{page_name} | {self.project_name}")
         description = seo.get('description', f"{page_name} - {self.project_name}")
         keywords = seo.get('keywords', '')
