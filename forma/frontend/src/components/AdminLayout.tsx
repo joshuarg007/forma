@@ -8,7 +8,8 @@ import {
   Sparkles, Home, FolderOpen, Layers, ShoppingBag, Users, Settings,
   CreditCard, BarChart3, HelpCircle, ChevronLeft, ChevronRight, LogOut,
   Search, Bell, Command, Moon, Sun, Menu, X, Zap, Globe, MessageSquare,
-  FileCode, Palette, Package, Rocket, Star, TrendingUp, ArrowUpRight, Inbox
+  FileCode, Palette, Package, Rocket, Star, TrendingUp, ArrowUpRight, Inbox, List,
+  Image, PenSquare, Store, SearchCheck, Plug
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useProjectStore } from '@/stores/projectStore'
@@ -43,10 +44,34 @@ const navItems: NavItem[] = [
     badgeColor: 'bg-forma-500',
   },
   {
+    id: 'media',
+    label: 'Media',
+    icon: <Image className="w-5 h-5" />,
+    href: '/dashboard/media',
+  },
+  {
+    id: 'blog',
+    label: 'Blog',
+    icon: <PenSquare className="w-5 h-5" />,
+    href: '/dashboard/blog',
+  },
+  {
     id: 'forms',
     label: 'Forms',
     icon: <Inbox className="w-5 h-5" />,
     href: '/dashboard/forms',
+  },
+  {
+    id: 'menus',
+    label: 'Menus',
+    icon: <List className="w-5 h-5" />,
+    href: '/dashboard/menus',
+  },
+  {
+    id: 'store',
+    label: 'Store',
+    icon: <Store className="w-5 h-5" />,
+    href: '/dashboard/store',
   },
   {
     id: 'components',
@@ -65,16 +90,28 @@ const navItems: NavItem[] = [
     href: '/marketplace',
   },
   {
-    id: 'team',
-    label: 'Team',
-    icon: <Users className="w-5 h-5" />,
-    href: '/dashboard/team',
-  },
-  {
     id: 'analytics',
     label: 'Analytics',
     icon: <BarChart3 className="w-5 h-5" />,
     href: '/dashboard/analytics',
+  },
+  {
+    id: 'seo',
+    label: 'SEO',
+    icon: <SearchCheck className="w-5 h-5" />,
+    href: '/dashboard/seo',
+  },
+  {
+    id: 'integrations',
+    label: 'Integrations',
+    icon: <Plug className="w-5 h-5" />,
+    href: '/dashboard/integrations',
+  },
+  {
+    id: 'team',
+    label: 'Team',
+    icon: <Users className="w-5 h-5" />,
+    href: '/dashboard/team',
   },
   {
     id: 'billing',
@@ -91,6 +128,8 @@ const navItems: NavItem[] = [
       { id: 'appearance', label: 'Appearance', href: '/settings/appearance' },
       { id: 'security', label: 'Security', href: '/settings/security' },
       { id: 'api', label: 'API Keys', href: '/settings/api' },
+      { id: 'backups', label: 'Backups', href: '/settings/backups' },
+      { id: 'localization', label: 'Localization', href: '/settings/localization' },
     ],
   },
 ]

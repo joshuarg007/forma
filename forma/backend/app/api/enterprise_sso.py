@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 
 from app.db.database import get_db
 from app.db.models import User, Team, TeamMember, SSOConfig, SSOProvider, SSOSession
-from app.api.auth import get_current_user, create_access_token, create_refresh_token
+from app.core.security import get_current_user, create_access_token, create_refresh_token
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)

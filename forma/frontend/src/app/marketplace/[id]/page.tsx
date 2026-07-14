@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
+import AdminLayout from '@/components/AdminLayout'
 
 interface Listing {
   id: string
@@ -149,53 +151,44 @@ export default function ListingDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-      </div>
+      <AdminLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-forma-500" />
+        </div>
+      </AdminLayout>
     )
   }
 
   if (error || !listing) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2">Component Not Found</h1>
-          <p className="text-muted-foreground mb-4">{error || 'This listing does not exist'}</p>
-          <Link href="/marketplace" className="text-primary hover:underline">
-            Back to Marketplace
-          </Link>
+      <AdminLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-white mb-2">Component Not Found</h1>
+            <p className="text-white/60 mb-4">{error || 'This listing does not exist'}</p>
+            <Link href="/marketplace" className="text-forma-400 hover:underline">
+              Back to Marketplace
+            </Link>
+          </div>
         </div>
-      </div>
+      </AdminLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link href="/marketplace" className="text-muted-foreground hover:text-foreground">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </Link>
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold">F</span>
-              </div>
-              <span className="text-xl font-bold">FORMA</span>
-            </Link>
-          </div>
-        </div>
-      </header>
+    <AdminLayout>
+      <div className="p-6 lg:p-8">
+        {/* Back link */}
+        <Link href="/marketplace" className="inline-flex items-center gap-2 text-white/60 hover:text-white mb-6 transition">
+          <ArrowLeft className="w-4 h-4" />
+          Back to Marketplace
+        </Link>
 
-      <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2">
             {/* Preview */}
-            <div className="aspect-video bg-card border border-border rounded-xl overflow-hidden mb-6">
+            <div className="aspect-video bg-white/5 border border-white/10 rounded-2xl overflow-hidden mb-6">
               {listing.preview_images.length > 0 ? (
                 <img
                   src={listing.preview_images[0]}
@@ -203,7 +196,7 @@ export default function ListingDetailPage() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                <div className="w-full h-full flex items-center justify-center text-white/20">
                   <svg className="w-24 h-24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
                   </svg>
@@ -215,12 +208,12 @@ export default function ListingDetailPage() {
             <div className="mb-6">
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div>
-                  <h1 className="text-3xl font-bold mb-2">{listing.title}</h1>
-                  <p className="text-muted-foreground">{listing.description}</p>
+                  <h1 className="text-3xl font-bold text-white mb-2">{listing.title}</h1>
+                  <p className="text-white/60">{listing.description}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {listing.is_featured && (
-                    <span className="px-3 py-1 bg-primary text-primary-foreground text-sm font-medium rounded-full">
+                    <span className="px-3 py-1 bg-forma-500 text-white text-sm font-medium rounded-full">
                       Featured
                     </span>
                   )}
@@ -233,7 +226,7 @@ export default function ListingDetailPage() {
                   {listing.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="px-3 py-1 bg-accent text-accent-foreground text-sm rounded-full"
+                      className="px-3 py-1 bg-forma-500/20 text-forma-300 text-sm rounded-full"
                     >
                       {tag}
                     </span>
@@ -242,7 +235,7 @@ export default function ListingDetailPage() {
               )}
 
               {/* Stats */}
-              <div className="flex items-center gap-6 text-muted-foreground">
+              <div className="flex items-center gap-6 text-white/40">
                 <span className="flex items-center gap-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -266,9 +259,9 @@ export default function ListingDetailPage() {
 
             {/* Long Description */}
             {listing.long_description && (
-              <div className="prose prose-invert max-w-none mb-8">
-                <h2 className="text-xl font-semibold mb-4">About</h2>
-                <div className="text-muted-foreground whitespace-pre-wrap">
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold text-white mb-4">About</h2>
+                <div className="text-white/60 whitespace-pre-wrap">
                   {listing.long_description}
                 </div>
               </div>
@@ -277,12 +270,12 @@ export default function ListingDetailPage() {
             {/* Demo */}
             {listing.demo_url && (
               <div className="mb-8">
-                <h2 className="text-xl font-semibold mb-4">Live Demo</h2>
+                <h2 className="text-xl font-semibold text-white mb-4">Live Demo</h2>
                 <a
                   href={listing.demo_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-primary hover:underline"
+                  className="inline-flex items-center gap-2 text-forma-400 hover:underline"
                 >
                   View Demo
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -297,14 +290,14 @@ export default function ListingDetailPage() {
           <div className="lg:col-span-1">
             <div className="sticky top-8">
               {/* Price & Actions */}
-              <div className="bg-card border border-border rounded-xl p-6 mb-6">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
                 <div className="text-center mb-6">
                   {listing.listing_type === 'free' ? (
-                    <span className="text-3xl font-bold text-green-500">Free</span>
+                    <span className="text-3xl font-bold text-emerald-400">Free</span>
                   ) : (
                     <div>
-                      <span className="text-3xl font-bold">${listing.price_usd}</span>
-                      <span className="text-muted-foreground"> USD</span>
+                      <span className="text-3xl font-bold text-white">${listing.price_usd}</span>
+                      <span className="text-white/40"> USD</span>
                     </div>
                   )}
                 </div>
@@ -312,7 +305,7 @@ export default function ListingDetailPage() {
                 {listing.listing_type === 'free' || purchased ? (
                   <button
                     onClick={handleForkClick}
-                    className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition mb-3"
+                    className="w-full py-3 bg-forma-500 text-white rounded-xl font-medium hover:bg-forma-600 transition mb-3"
                   >
                     Fork to Project
                   </button>
@@ -320,20 +313,20 @@ export default function ListingDetailPage() {
                   <button
                     onClick={handlePurchase}
                     disabled={purchasing}
-                    className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition disabled:opacity-50 mb-3"
+                    className="w-full py-3 bg-forma-500 text-white rounded-xl font-medium hover:bg-forma-600 transition disabled:opacity-50 mb-3"
                   >
                     {purchasing ? 'Processing...' : `Purchase for $${listing.price_usd}`}
                   </button>
                 )}
 
-                <p className="text-sm text-center text-muted-foreground">
+                <p className="text-sm text-center text-white/40">
                   Fork this component into any of your FORMA projects
                 </p>
               </div>
 
               {/* Creator */}
-              <div className="bg-card border border-border rounded-xl p-6">
-                <h3 className="font-semibold mb-4">Created by</h3>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                <h3 className="font-semibold text-white mb-4">Created by</h3>
                 <div className="flex items-center gap-3">
                   {listing.creator.avatar_url ? (
                     <img
@@ -342,42 +335,42 @@ export default function ListingDetailPage() {
                       className="w-12 h-12 rounded-full"
                     />
                   ) : (
-                    <div className="w-12 h-12 bg-accent rounded-full flex items-center justify-center">
-                      <span className="text-lg font-bold">
+                    <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center">
+                      <span className="text-lg font-bold text-white">
                         {(listing.creator.name || listing.creator.username || 'A')[0].toUpperCase()}
                       </span>
                     </div>
                   )}
                   <div>
-                    <p className="font-medium">
+                    <p className="font-medium text-white">
                       {listing.creator.name || listing.creator.username || 'Anonymous'}
                     </p>
                     {listing.creator.username && (
-                      <p className="text-sm text-muted-foreground">@{listing.creator.username}</p>
+                      <p className="text-sm text-white/40">@{listing.creator.username}</p>
                     )}
                   </div>
                 </div>
                 {listing.creator.bio && (
-                  <p className="mt-3 text-sm text-muted-foreground">{listing.creator.bio}</p>
+                  <p className="mt-3 text-sm text-white/60">{listing.creator.bio}</p>
                 )}
               </div>
             </div>
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Fork Modal */}
       {showForkModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card border border-border rounded-xl p-6 w-full max-w-md mx-4">
-            <h2 className="text-xl font-bold mb-4">Fork Component</h2>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-forma-950 border border-white/10 rounded-2xl p-6 w-full max-w-md mx-4">
+            <h2 className="text-xl font-bold text-white mb-4">Fork Component</h2>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">Target Project</label>
+              <label className="block text-sm font-medium text-white/80 mb-2">Target Project</label>
               {projects.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
+                <p className="text-white/40 text-sm">
                   No projects found.{' '}
-                  <Link href="/dashboard" className="text-primary hover:underline">
+                  <Link href="/dashboard" className="text-forma-400 hover:underline">
                     Create a project first
                   </Link>
                 </p>
@@ -385,10 +378,10 @@ export default function ListingDetailPage() {
                 <select
                   value={selectedProject || ''}
                   onChange={(e) => setSelectedProject(e.target.value)}
-                  className="w-full px-4 py-2 bg-zinc-900 text-white border border-border rounded-lg"
+                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white"
                 >
                   {projects.map((p) => (
-                    <option key={p.id} value={p.id} className="bg-zinc-900 text-white">
+                    <option key={p.id} value={p.id}>
                       {p.name}
                     </option>
                   ))}
@@ -397,12 +390,12 @@ export default function ListingDetailPage() {
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-medium mb-2">Component Name</label>
+              <label className="block text-sm font-medium text-white/80 mb-2">Component Name</label>
               <input
                 type="text"
                 value={forkName}
                 onChange={(e) => setForkName(e.target.value)}
-                className="w-full px-4 py-2 bg-background border border-border rounded-lg"
+                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/40"
                 placeholder="Component name"
               />
             </div>
@@ -410,14 +403,14 @@ export default function ListingDetailPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowForkModal(false)}
-                className="flex-1 py-2 border border-border rounded-lg hover:bg-accent transition"
+                className="flex-1 py-2 border border-white/10 rounded-xl text-white/80 hover:bg-white/5 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleFork}
                 disabled={forking || !selectedProject}
-                className="flex-1 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition disabled:opacity-50"
+                className="flex-1 py-2 bg-forma-500 text-white rounded-xl hover:bg-forma-600 transition disabled:opacity-50"
               >
                 {forking ? 'Forking...' : 'Fork Component'}
               </button>
@@ -425,6 +418,6 @@ export default function ListingDetailPage() {
           </div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   )
 }

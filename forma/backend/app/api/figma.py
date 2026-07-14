@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 
 from app.db.database import get_db
 from app.db.models import User, Project, FigmaImport, FigmaImportStatus
-from app.api.auth import get_current_user
+from app.core.security import get_current_user
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)

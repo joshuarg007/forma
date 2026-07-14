@@ -50,3 +50,6 @@ uploads/
 
 # Cache
 .cache/
+
+# Generated dev schema (runtime state, like app.db/.coverage siblings)
+formabase/runtime/schema.json
