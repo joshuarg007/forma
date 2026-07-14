@@ -93,7 +93,7 @@ export const useHostingStore = create<HostingState>((set, get) => ({
       })
     } catch (error: any) {
       // 404 means hosting not configured yet
-      if (error.message?.includes('404') || error.message?.includes('not configured')) {
+      if (error.message?.includes('404') || error.message?.includes('not configured') || error.message?.includes('Hosting not configured') || error.message?.includes('Not Found')) {
         set({ hostingConfig: null, loading: false })
       } else {
         set({ error: error.message, loading: false })

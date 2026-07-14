@@ -296,7 +296,27 @@ export default function BuilderPage() {
         pageComponents: pageComponents,
       }
 
-      const suggestions = await getSmartSuggestions(context, 6)
+      let suggestions = await getSmartSuggestions(context, 12)
+
+      // If user typed a query, filter/boost suggestions matching the query
+      if (chatQuery.trim()) {
+        const query = chatQuery.trim().toLowerCase()
+        const scored = suggestions.map(s => {
+          const name = s.componentType.replace(/-/g, ' ').toLowerCase()
+          const reason = (s.reason || '').toLowerCase()
+          let boost = 0
+          if (name.includes(query)) boost = 2
+          else if (reason.includes(query)) boost = 1
+          // Also check partial word matches
+          else if (query.split(' ').some(w => name.includes(w))) boost = 1.5
+          return { ...s, score: s.score + boost }
+        })
+        scored.sort((a, b) => b.score - a.score)
+        suggestions = scored.slice(0, 6)
+      } else {
+        suggestions = suggestions.slice(0, 6)
+      }
+
       setChatSuggestions(suggestions)
     } catch (error) {
       console.error('[AI Chat] Suggestion failed:', error)
@@ -834,7 +854,7 @@ ${componentsHtml}
       // Fetch hosting config (silently fails if not configured)
       fetchHostingConfig(projectId)
     }
-  }, [projectId, user, selectProject, fetchHostingConfig])
+  }, [projectId, user]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load canvas components from current page
   useEffect(() => {
@@ -1211,6 +1231,106 @@ ${componentsHtml}
               </div>
             </div>
           )}
+
+          {/* AI Assistant Panel - anchored to bottom of canvas area */}
+          <div className={`flex-shrink-0 bg-[#1a1d24] border-t border-forma-500/30 transition-all duration-300 ${showAIPanel ? 'h-56' : 'h-10'}`}>
+            {/* Toggle bar */}
+            <button
+              onClick={() => setShowAIPanel(!showAIPanel)}
+              className="w-full h-10 flex items-center justify-between px-4 hover:bg-white/5 transition bg-gradient-to-r from-forma-500/10 via-transparent to-forma-500/10"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Wand2 className="w-4 h-4 text-forma-400" />
+                  <span className="text-sm font-medium text-white">AI Assistant</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">TF.js</span>
+                </div>
+                {modelStatus && (
+                  <span className="text-[10px] text-white/40">
+                    {modelStatus.initialized ? '✓ Ready' : '⏳ Loading...'}
+                    {modelStatus.historySize > 0 && ` • ${modelStatus.historySize} learned`}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {!showAIPanel && (
+                  <span className="text-xs text-white/40">Click to expand</span>
+                )}
+                <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${showAIPanel ? 'rotate-180' : ''}`} />
+              </div>
+            </button>
+
+            {/* Expanded content */}
+            {showAIPanel && (
+              <div className="h-[calc(100%-40px)] px-4 pb-4 overflow-hidden flex flex-col gap-3">
+                {/* Chat input row */}
+                <div className="flex gap-3 flex-shrink-0">
+                  <div className="flex-1 relative">
+                    <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                    <input
+                      type="text"
+                      value={chatQuery}
+                      onChange={(e) => setChatQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !chatLoading) {
+                          handleAskForSuggestions()
+                        }
+                      }}
+                      placeholder="Describe what to add... (e.g. add a navbar, build a pricing section)"
+                      className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-sm placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-forma-500/50 focus:border-forma-500/50"
+                    />
+                  </div>
+                  <button
+                    onClick={handleAskForSuggestions}
+                    disabled={chatLoading}
+                    className="px-5 rounded-xl bg-forma-500 hover:bg-forma-600 text-white font-medium text-sm transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0"
+                  >
+                    {chatLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Thinking...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        <span>Suggest</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Suggestions row */}
+                <div className="flex-1 overflow-x-auto min-h-0">
+                  {chatSuggestions.length > 0 ? (
+                    <div className="flex gap-2 h-full py-1">
+                      {chatSuggestions.map((suggestion, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleAddFromSuggestion(suggestion)}
+                          className="flex-shrink-0 w-48 h-full p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-forma-500/50 text-left transition group"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-forma-500/20 text-forma-400">
+                              {Math.round(suggestion.score * 100)}% match
+                            </span>
+                            <span className="text-white/40 group-hover:text-forma-400 transition text-lg">+</span>
+                          </div>
+                          <div className="text-sm text-white font-medium mb-1 truncate">
+                            {suggestion.componentType.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </div>
+                          <div className="text-[11px] text-white/50 line-clamp-2">{suggestion.reason}</div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="h-full flex items-center justify-center text-white/40 text-sm">
+                      Type a description or click Suggest to get AI-powered component recommendations
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right sidebar - Properties & AI */}
@@ -1245,88 +1365,6 @@ ${componentsHtml}
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
-
-      {/* Bottom AI Panel */}
-      <div className={`fixed bottom-0 left-0 right-0 bg-[#1a1d24] border-t border-white/10 z-40 transition-all duration-300 ${showAIPanel ? 'h-48' : 'h-10'}`}>
-        {/* Toggle bar */}
-        <button
-          onClick={() => setShowAIPanel(!showAIPanel)}
-          className="w-full h-10 flex items-center justify-between px-4 hover:bg-white/5 transition"
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Wand2 className="w-4 h-4 text-forma-400" />
-              <span className="text-sm font-medium text-white">AI Assistant</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 text-green-400">TF.js</span>
-            </div>
-            {modelStatus && (
-              <span className="text-[10px] text-white/40">
-                {modelStatus.initialized ? '✓ Ready' : '⏳ Loading...'}
-                {modelStatus.historySize > 0 && ` • ${modelStatus.historySize} learned`}
-              </span>
-            )}
-          </div>
-          <ChevronDown className={`w-4 h-4 text-white/60 transition-transform ${showAIPanel ? 'rotate-180' : ''}`} />
-        </button>
-
-        {/* Expanded content */}
-        {showAIPanel && (
-          <div className="h-[calc(100%-40px)] px-4 pb-4 overflow-hidden">
-            <div className="h-full flex gap-4">
-              {/* Ask button */}
-              <div className="flex-shrink-0">
-                <button
-                  onClick={handleAskForSuggestions}
-                  disabled={chatLoading}
-                  className="h-full px-6 rounded-xl bg-forma-500 hover:bg-forma-600 text-white font-medium transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  {chatLoading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Thinking...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-5 h-5" />
-                      <span>What should I add next?</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Suggestions */}
-              <div className="flex-1 overflow-x-auto">
-                {chatSuggestions.length > 0 ? (
-                  <div className="flex gap-2 h-full py-1">
-                    {chatSuggestions.map((suggestion, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleAddFromSuggestion(suggestion)}
-                        className="flex-shrink-0 w-48 h-full p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-forma-500/50 text-left transition group"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-forma-500/20 text-forma-400">
-                            {Math.round(suggestion.score * 100)}% match
-                          </span>
-                          <span className="text-white/40 group-hover:text-forma-400 transition text-lg">+</span>
-                        </div>
-                        <div className="text-sm text-white font-medium mb-1 truncate">
-                          {suggestion.componentType.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </div>
-                        <div className="text-[11px] text-white/50 line-clamp-2">{suggestion.reason}</div>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-white/40 text-sm">
-                    Click the button to get AI-powered suggestions based on your current page
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Modal Panels */}

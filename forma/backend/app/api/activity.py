@@ -90,7 +90,7 @@ def enrich_activity(activity: ActivityLog) -> ActivityResponse:
         entity_name=activity.entity_name,
         description=activity.description,
         changes=activity.changes,
-        metadata=activity.metadata,
+        metadata=activity.activity_metadata,
         created_at=activity.created_at,
     )
 
@@ -125,7 +125,7 @@ async def log_activity(
         entity_name=entity_name,
         description=description,
         changes=changes,
-        metadata=metadata or {},
+        activity_metadata=metadata or {},
         ip_address=ip_address,
         user_agent=user_agent,
     )

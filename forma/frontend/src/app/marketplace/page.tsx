@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { Search, SlidersHorizontal } from 'lucide-react'
 import { api } from '@/lib/api'
+import AdminLayout from '@/components/AdminLayout'
 
 interface ListingCard {
   id: string
@@ -92,49 +94,21 @@ export default function MarketplacePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold">F</span>
-              </div>
-              <span className="text-xl font-bold">FORMA</span>
-              <span className="text-muted-foreground">Marketplace</span>
-            </Link>
-            <div className="flex items-center gap-4">
-              <Link
-                href="/dashboard"
-                className="text-muted-foreground hover:text-foreground transition"
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/marketplace/publish"
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition"
-              >
-                Publish Component
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
+    <AdminLayout>
+      <div className="p-6 lg:p-8">
         {/* Hero */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Component Marketplace</h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">Component Marketplace</h1>
+          <p className="text-white/60 max-w-2xl">
             Discover, share, and monetize AI-generated React components.
             Fork into your projects with one click.
           </p>
         </div>
 
         {/* Search & Filters */}
-        <div className="flex flex-col md:flex-row gap-4 mb-8">
-          <div className="flex-1">
+        <div className="flex flex-col md:flex-row gap-3 mb-8">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
             <input
               type="text"
               placeholder="Search components..."
@@ -143,7 +117,7 @@ export default function MarketplacePage() {
                 setSearchQuery(e.target.value)
                 setPage(1)
               }}
-              className="w-full px-4 py-3 bg-card border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-forma-500/50 focus:border-forma-500/50"
             />
           </div>
           <select
@@ -152,11 +126,11 @@ export default function MarketplacePage() {
               setSelectedCategory(e.target.value || null)
               setPage(1)
             }}
-            className="px-4 py-3 bg-zinc-900 text-white border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-forma-500/50"
           >
-            <option value="" className="bg-zinc-900 text-white">All Categories</option>
+            <option value="">All Categories</option>
             {categories.map((cat) => (
-              <option key={cat.name} value={cat.name} className="bg-zinc-900 text-white">
+              <option key={cat.name} value={cat.name}>
                 {cat.name} ({cat.count})
               </option>
             ))}
@@ -167,11 +141,11 @@ export default function MarketplacePage() {
               setListingType(e.target.value || null)
               setPage(1)
             }}
-            className="px-4 py-3 bg-zinc-900 text-white border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-forma-500/50"
           >
-            <option value="" className="bg-zinc-900 text-white">All Types</option>
-            <option value="free" className="bg-zinc-900 text-white">Free</option>
-            <option value="paid" className="bg-zinc-900 text-white">Paid</option>
+            <option value="">All Types</option>
+            <option value="free">Free</option>
+            <option value="paid">Paid</option>
           </select>
           <select
             value={sortBy}
@@ -179,10 +153,10 @@ export default function MarketplacePage() {
               setSortBy(e.target.value)
               setPage(1)
             }}
-            className="px-4 py-3 bg-zinc-900 text-white border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-forma-500/50"
           >
             {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value} className="bg-zinc-900 text-white">
+              <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
             ))}
@@ -191,9 +165,9 @@ export default function MarketplacePage() {
 
         {/* Featured Section */}
         {featured.length > 0 && !searchQuery && !selectedCategory && (
-          <div className="mb-12">
-            <h2 className="text-2xl font-bold mb-6">Featured Components</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="mb-10">
+            <h2 className="text-xl font-semibold text-white mb-4">Featured Components</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {featured.map((listing) => (
                 <ComponentCard key={listing.id} listing={listing} featured />
               ))}
@@ -203,25 +177,25 @@ export default function MarketplacePage() {
 
         {/* Listings Grid */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-6">
+          <h2 className="text-xl font-semibold text-white mb-4">
             {searchQuery ? `Results for "${searchQuery}"` : 'All Components'}
           </h2>
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {[...Array(8)].map((_, i) => (
                 <div
                   key={i}
-                  className="h-64 bg-card border border-border rounded-xl animate-pulse"
+                  className="h-64 bg-white/5 border border-white/10 rounded-2xl animate-pulse"
                 />
               ))}
             </div>
           ) : listings.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p className="text-xl mb-2">No components found</p>
-              <p>Try adjusting your search or filters</p>
+            <div className="text-center py-16">
+              <p className="text-xl text-white/60 mb-2">No components found</p>
+              <p className="text-white/40">Try adjusting your search or filters</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {listings.map((listing) => (
                 <ComponentCard key={listing.id} listing={listing} />
               ))}
@@ -235,24 +209,24 @@ export default function MarketplacePage() {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-4 py-2 border border-border rounded-lg hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 border border-white/10 rounded-xl text-white/80 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition"
             >
               Previous
             </button>
-            <span className="px-4 py-2 text-muted-foreground">
+            <span className="px-4 py-2 text-white/40">
               Page {page} of {totalPages}
             </span>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              className="px-4 py-2 border border-border rounded-lg hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 border border-white/10 rounded-xl text-white/80 hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition"
             >
               Next
             </button>
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </AdminLayout>
   )
 }
 
@@ -266,12 +240,12 @@ function ComponentCard({
   return (
     <Link href={`/marketplace/${listing.id}`}>
       <div
-        className={`group bg-card border rounded-xl overflow-hidden hover:border-primary transition cursor-pointer ${
-          featured ? 'border-primary/50' : 'border-border'
+        className={`group bg-white/5 border rounded-2xl overflow-hidden hover:border-forma-500/50 transition cursor-pointer ${
+          featured ? 'border-forma-500/30' : 'border-white/10'
         }`}
       >
         {/* Preview */}
-        <div className="aspect-video bg-muted relative overflow-hidden">
+        <div className="aspect-video bg-white/[0.02] relative overflow-hidden">
           {listing.preview_image ? (
             <img
               src={listing.preview_image}
@@ -279,7 +253,7 @@ function ComponentCard({
               className="w-full h-full object-cover group-hover:scale-105 transition"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+            <div className="w-full h-full flex items-center justify-center text-white/20">
               <svg
                 className="w-12 h-12"
                 fill="none"
@@ -296,23 +270,25 @@ function ComponentCard({
             </div>
           )}
           {featured && (
-            <div className="absolute top-2 left-2 px-2 py-1 bg-primary text-primary-foreground text-xs font-medium rounded">
+            <div className="absolute top-2 left-2 px-2 py-1 bg-forma-500 text-white text-xs font-medium rounded-lg">
               Featured
             </div>
           )}
-          <div className="absolute top-2 right-2 px-2 py-1 bg-background/80 backdrop-blur text-xs font-medium rounded">
+          <div className="absolute top-2 right-2 px-2 py-1 bg-black/60 backdrop-blur text-xs font-medium rounded-lg">
             {listing.listing_type === 'free' ? (
-              <span className="text-green-500">Free</span>
+              <span className="text-emerald-400">Free</span>
             ) : (
-              <span className="text-primary">${listing.price_usd}</span>
+              <span className="text-forma-400">${listing.price_usd}</span>
             )}
           </div>
         </div>
 
         {/* Content */}
         <div className="p-4">
-          <h3 className="font-semibold mb-1 truncate">{listing.title}</h3>
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+          <h3 className="font-semibold text-white mb-1 truncate group-hover:text-forma-400 transition">
+            {listing.title}
+          </h3>
+          <p className="text-sm text-white/50 line-clamp-2 mb-3">
             {listing.description || 'No description'}
           </p>
 
@@ -322,7 +298,7 @@ function ComponentCard({
               {listing.tags.slice(0, 3).map((tag) => (
                 <span
                   key={tag}
-                  className="px-2 py-0.5 bg-accent text-accent-foreground text-xs rounded"
+                  className="px-2 py-0.5 bg-forma-500/20 text-forma-300 text-xs rounded-lg"
                 >
                   {tag}
                 </span>
@@ -331,7 +307,7 @@ function ComponentCard({
           )}
 
           {/* Footer */}
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <div className="flex items-center justify-between text-sm text-white/40">
             <div className="flex items-center gap-1">
               {listing.creator_avatar ? (
                 <img
@@ -340,7 +316,7 @@ function ComponentCard({
                   className="w-5 h-5 rounded-full"
                 />
               ) : (
-                <div className="w-5 h-5 bg-accent rounded-full" />
+                <div className="w-5 h-5 bg-white/10 rounded-full" />
               )}
               <span>{listing.creator_username || 'Anonymous'}</span>
             </div>
